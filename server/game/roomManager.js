@@ -1,11 +1,36 @@
 'use strict';
 
 const { createInitialState, applyMove, applySwap, applyPass, getStateForPlayer } = require('./kwerzoEngine');
+const { getBotMove } = require('./botAI');
 
 const rooms = new Map();
 
 function generateId() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+const BOT_NAMES = {
+  easy:   ['Pixel', 'Wobble', 'Doodle', 'Blinky', 'Zippy'],
+  medium: ['Nova', 'Cipher', 'Axiom', 'Prism', 'Vector'],
+  hard:   ['Nexus', 'Oracle', 'Titan', 'Apex', 'Zenith'],
+};
+
+function addBot(roomId, difficulty) {
+  const room = rooms.get(roomId);
+  if (!room) return { error: 'Room not found' };
+  if (room.status !== 'waiting') return { error: 'Game already in progress' };
+  if (room.players.length >= 4) return { error: 'Room is full (max 4 players)' };
+
+  const names = BOT_NAMES[difficulty] || BOT_NAMES.medium;
+  const usedNames = room.players.map(p => p.username);
+  const available = names.filter(n => !usedNames.includes(`${n} (Bot)`));
+  const name = available.length > 0
+    ? `${available[0]} (Bot)`
+    : `Bot ${room.players.length + 1}`;
+
+  const botId = `bot_${difficulty}_${generateId()}`;
+  room.players.push({ id: botId, username: name, isBot: true, difficulty });
+  return { room };
 }
 
 function createRoom(hostId, hostUsername) {
@@ -80,6 +105,58 @@ function startGame(roomId, userId) {
   return { room };
 }
 
+// Returns bot player info if the current turn belongs to a bot
+function getCurrentBot(room) {
+  if (!room.gameState || room.status !== 'playing') return null;
+  const idx = room.gameState.currentPlayerIndex;
+  const player = room.players[idx];
+  if (!player || !player.isBot) return null;
+  const gsPlayer = room.gameState.players[idx];
+  if (!gsPlayer) return null;
+  return { ...player, hand: gsPlayer.hand };
+}
+
+function executeBotMove(roomId) {
+  const room = rooms.get(roomId);
+  if (!room) return null;
+
+  const bot = getCurrentBot(room);
+  if (!bot) return null;
+
+  const decision = getBotMove(room.gameState, bot.id, bot.difficulty);
+
+  let result;
+  if (decision.action === 'place') {
+    result = applyMove(room.gameState, bot.id, decision.placements);
+    if (result.error) {
+      // Fallback to pass on unexpected error
+      result = applyPass(room.gameState, bot.id);
+      result.action = 'pass';
+    } else {
+      result.action = 'place';
+    }
+  } else if (decision.action === 'swap') {
+    result = applySwap(room.gameState, bot.id, decision.tiles);
+    if (result.error) {
+      result = applyPass(room.gameState, bot.id);
+      result.action = 'pass';
+    } else {
+      result.action = 'swap';
+      result.count  = decision.tiles.length;
+    }
+  } else {
+    result = applyPass(room.gameState, bot.id);
+    result.action = 'pass';
+  }
+
+  if (result.error) return null;
+
+  room.gameState = result.newState;
+  if (room.gameState.status === 'finished') room.status = 'finished';
+
+  return { result, room, bot };
+}
+
 function handleMove(roomId, userId, placements) {
   const room = rooms.get(roomId);
   if (!room) return { error: 'Room not found' };
@@ -143,10 +220,13 @@ module.exports = {
   createRoom,
   joinRoom,
   leaveRoom,
+  addBot,
   startGame,
   handleMove,
   handleSwap,
   handlePass,
+  getCurrentBot,
+  executeBotMove,
   getRoom,
   listOpenRooms,
   getRoomState

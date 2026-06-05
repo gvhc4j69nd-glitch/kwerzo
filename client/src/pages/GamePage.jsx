@@ -196,6 +196,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
                   <div className="player-name">
                     {isCurrentTurn && <span className="turn-arrow">▶</span>}
                     {rp.username}{rp.id === user.id ? ' (you)' : ''}
+                    {rp.isBot && <span className={`bot-badge ${rp.difficulty}`}>{rp.difficulty}</span>}
                   </div>
                   <div className="player-score">{gp?.score ?? 0} pts</div>
                   {gp && rp.id !== user.id && <div className="hand-size">{gp.handSize} tiles</div>}
@@ -209,6 +210,23 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
           {moveError && <div className="move-error">{moveError}</div>}
 
           <div className="game-actions">
+            {!gameState && room?.hostId === user.id && (
+              <div className="add-bot-row">
+                <select className="bot-diff-select" id="botDiff">
+                  <option value="easy">Easy Bot</option>
+                  <option value="medium" defaultValue>Medium Bot</option>
+                  <option value="hard">Hard Bot</option>
+                </select>
+                <button
+                  className="btn-secondary"
+                  disabled={room?.players.length >= 4}
+                  onClick={() => {
+                    const diff = document.getElementById('botDiff').value;
+                    socket.emit('add_bot', { roomId, difficulty: diff });
+                  }}
+                >+ Add Bot</button>
+              </div>
+            )}
             {!gameState && (
               room?.players.length < 2
                 ? <div className="waiting-msg">Waiting for players…</div>
@@ -311,11 +329,26 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
           <span className="mob-wait">Waiting for {currentTurnPlayer?.username}…</span>
         )}
         {!gameState && (
-          room?.players.length < 2
-            ? <span className="mob-wait">Waiting for players…</span>
-            : room?.hostId === user.id
-              ? <button className="btn-primary btn-sm" onClick={() => socket.emit('start_game', { roomId })}>Start Game</button>
-              : <span className="mob-wait">Waiting for host…</span>
+          room?.hostId === user.id ? (
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+              <select className="bot-diff-select" id="botDiffMob">
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+              <button className="btn-secondary btn-sm"
+                disabled={room?.players.length >= 4}
+                onClick={() => {
+                  const diff = document.getElementById('botDiffMob').value;
+                  socket.emit('add_bot', { roomId, difficulty: diff });
+                }}>+ Bot</button>
+              {room?.players.length >= 2 && (
+                <button className="btn-primary btn-sm" onClick={() => socket.emit('start_game', { roomId })}>Start</button>
+              )}
+            </div>
+          ) : (
+            <span className="mob-wait">Waiting for host…</span>
+          )
         )}
       </div>
 

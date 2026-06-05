@@ -62,6 +62,7 @@ function broadcastRoomUpdate(roomId) {
 
 function broadcastGameState(room) {
   for (const player of room.players) {
+    if (player.isBot) continue;
     const playerSockets = [...io.sockets.sockets.values()]
       .filter(s => s.user?.userId === player.id);
     const state = roomManager.getRoomState(room, player.id);
@@ -69,6 +70,67 @@ function broadcastGameState(room) {
       s.emit('game_update', { state, roomId: room.id });
     }
   }
+}
+
+function handleGameOver(room) {
+  const players = room.gameState.players;
+  const maxScore = Math.max(...players.map(p => p.score));
+  const winners  = players.filter(p => p.score === maxScore);
+  const scores   = Object.fromEntries(players.map(p => [p.id, p.score]));
+
+  broadcastGameState(room);
+  io.to(room.id).emit('game_over', {
+    roomId: room.id,
+    players: players.map(p => ({
+      id: p.id,
+      username: room.players.find(rp => rp.id === p.id)?.username,
+      score: p.score
+    })),
+    winners: winners.map(w => w.id)
+  });
+
+  const realPlayerIds = room.players.filter(p => !p.isBot).map(p => p.id);
+  if (realPlayerIds.length > 0) {
+    updateStats(winners.filter(w => !room.players.find(p=>p.id===w.id)?.isBot).map(w=>w.id),
+                realPlayerIds, scores).catch(console.error);
+  }
+}
+
+// Trigger bot moves, chaining until a human's turn (or game over)
+function scheduleBotMoves(roomId, delayMs) {
+  setTimeout(() => {
+    const room = roomManager.getRoom(roomId);
+    if (!room || room.status !== 'playing') return;
+
+    const bot = roomManager.getCurrentBot(room);
+    if (!bot) return;
+
+    const outcome = roomManager.executeBotMove(roomId);
+    if (!outcome) return;
+
+    const { result, room: updatedRoom, bot: botPlayer } = outcome;
+
+    if (updatedRoom.status === 'finished') {
+      handleGameOver(updatedRoom);
+      return;
+    }
+
+    broadcastGameState(updatedRoom);
+
+    const type = result.action;
+    io.to(roomId).emit('move_made', {
+      roomId,
+      userId:   botPlayer.id,
+      username: botPlayer.username,
+      type:     type === 'place' ? undefined : type,
+      points:   result.points,
+      count:    result.count,
+    });
+
+    // If the next player is also a bot, chain another move
+    const nextBot = roomManager.getCurrentBot(updatedRoom);
+    if (nextBot) scheduleBotMoves(roomId, 1200);
+  }, delayMs);
 }
 
 io.on('connection', (socket) => {
@@ -87,16 +149,12 @@ io.on('connection', (socket) => {
       roomId: room.id,
       room: { id: room.id, hostId: room.hostId, players: room.players, status: room.status }
     });
-    // Notify lobby of new room
     socket.broadcast.emit('rooms_list', roomManager.listOpenRooms());
   });
 
   socket.on('join_room', ({ roomId }) => {
     const result = roomManager.joinRoom(roomId, userId, username);
-    if (result.error) {
-      socket.emit('error', result.error);
-      return;
-    }
+    if (result.error) { socket.emit('error', result.error); return; }
     socket.join(roomId);
     socketRooms.set(socket.id, roomId);
     socket.emit('room_joined', {
@@ -107,92 +165,64 @@ io.on('connection', (socket) => {
     io.emit('rooms_list', roomManager.listOpenRooms());
   });
 
+  socket.on('add_bot', ({ roomId, difficulty }) => {
+    const validDifficulties = ['easy', 'medium', 'hard'];
+    const diff = validDifficulties.includes(difficulty) ? difficulty : 'medium';
+    const result = roomManager.addBot(roomId, diff);
+    if (result.error) { socket.emit('error', result.error); return; }
+    broadcastRoomUpdate(roomId);
+  });
+
   socket.on('leave_room', ({ roomId }) => {
     const result = roomManager.leaveRoom(roomId, userId);
     socket.leave(roomId);
     socketRooms.delete(socket.id);
-    if (!result.deleted) {
-      broadcastRoomUpdate(roomId);
-    }
+    if (!result.deleted) broadcastRoomUpdate(roomId);
     io.emit('rooms_list', roomManager.listOpenRooms());
   });
 
   socket.on('start_game', ({ roomId }) => {
     const result = roomManager.startGame(roomId, userId);
-    if (result.error) {
-      socket.emit('error', result.error);
-      return;
-    }
+    if (result.error) { socket.emit('error', result.error); return; }
     broadcastRoomUpdate(roomId);
     broadcastGameState(result.room);
     io.to(roomId).emit('game_started', { roomId });
+    // If first player is a bot, kick off bot chain
+    scheduleBotMoves(roomId, 1000);
   });
 
   socket.on('place_tiles', ({ roomId, placements }) => {
     const result = roomManager.handleMove(roomId, userId, placements);
-    if (result.error) {
-      socket.emit('move_error', result.error);
-      return;
-    }
+    if (result.error) { socket.emit('move_error', result.error); return; }
 
     const { room, result: moveResult } = result;
 
-    if (room.gameState.status === 'finished') {
-      const players = room.gameState.players;
-      const maxScore = Math.max(...players.map(p => p.score));
-      const winners = players.filter(p => p.score === maxScore);
-      const scores = Object.fromEntries(players.map(p => [p.id, p.score]));
-
-      broadcastGameState(room);
-      io.to(roomId).emit('game_over', {
-        roomId,
-        players: players.map(p => ({
-          id: p.id,
-          username: room.players.find(rp => rp.id === p.id)?.username,
-          score: p.score
-        })),
-        winners: winners.map(w => w.id)
-      });
-
-      // Persist stats (non-awaited)
-      const realPlayerIds = room.players.map(p => p.id);
-      updateStats(winners.map(w => w.id), realPlayerIds, scores).catch(console.error);
+    if (room.status === 'finished') {
+      handleGameOver(room);
     } else {
       broadcastGameState(room);
       io.to(roomId).emit('move_made', {
-        roomId,
-        userId,
-        username,
-        placements,
-        points: moveResult.points
+        roomId, userId, username,
+        points: moveResult.points,
       });
+      scheduleBotMoves(roomId, 900);
     }
   });
 
   socket.on('swap_tiles', ({ roomId, tiles }) => {
     const result = roomManager.handleSwap(roomId, userId, tiles);
-    if (result.error) {
-      socket.emit('move_error', result.error);
-      return;
-    }
+    if (result.error) { socket.emit('move_error', result.error); return; }
     broadcastGameState(result.room);
-    io.to(roomId).emit('move_made', {
-      roomId,
-      userId,
-      username,
-      type: 'swap',
-      count: tiles.length
-    });
+    io.to(roomId).emit('move_made', { roomId, userId, username, type: 'swap', count: tiles.length });
+    scheduleBotMoves(roomId, 900);
   });
 
   socket.on('pass_turn', ({ roomId }) => {
     const result = roomManager.handlePass(roomId, userId);
-    if (result.error) {
-      socket.emit('move_error', result.error);
-      return;
-    }
+    if (result.error) { socket.emit('move_error', result.error); return; }
     broadcastGameState(result.room);
     io.to(roomId).emit('move_made', { roomId, userId, username, type: 'pass' });
+    scheduleBotMoves(roomId, 900);
   });
 
   socket.on('disconnect', () => {
@@ -200,7 +230,6 @@ io.on('connection', (socket) => {
     const roomId = socketRooms.get(socket.id);
     if (roomId) {
       socketRooms.delete(socket.id);
-      // Give 30s grace period before removing from room (reconnect window)
       setTimeout(() => {
         const stillConnected = [...io.sockets.sockets.values()]
           .some(s => s.user?.userId === userId && s.id !== socket.id);

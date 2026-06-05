@@ -590,6 +590,36 @@
   font-size: 13px !important;
 }
 
+.add-bot-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.bot-diff-select {
+  flex: 1;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* Bot badge in player list */
+.player-row .bot-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 10px;
+  margin-left: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.bot-badge.easy   { background: #d4edda; color: #276749; }
+.bot-badge.medium { background: #fff3cd; color: #856404; }
+.bot-badge.hard   { background: #f8d7da; color: #842029; }
+
 /* Prevent iOS text selection / callout on board */
 .board-viewport {
   -webkit-user-select: none;
