@@ -49,6 +49,18 @@ io.use((socket, next) => {
 // Track socket → room mapping
 const socketRooms = new Map();
 
+function broadcastGameState(room) {
+  for (const player of room.players) {
+    if (player.isBot) continue;
+    const playerSockets = [...io.sockets.sockets.values()]
+      .filter(s => s.user?.userId === player.id);
+    const state = roomManager.getRoomState(room, player.id);
+    for (const s of playerSockets) {
+      s.emit('game_update', { state, roomId: room.id });  // roomId lets client filter by room
+    }
+  }
+}
+
 function broadcastRoomUpdate(roomId) {
   const room = roomManager.getRoom(roomId);
   if (!room) return;
@@ -58,18 +70,6 @@ function broadcastRoomUpdate(roomId) {
     players: room.players,
     status: room.status
   });
-}
-
-function broadcastGameState(room) {
-  for (const player of room.players) {
-    if (player.isBot) continue;
-    const playerSockets = [...io.sockets.sockets.values()]
-      .filter(s => s.user?.userId === player.id);
-    const state = roomManager.getRoomState(room, player.id);
-    for (const s of playerSockets) {
-      s.emit('game_update', { state, roomId: room.id });
-    }
-  }
 }
 
 function handleGameOver(room) {

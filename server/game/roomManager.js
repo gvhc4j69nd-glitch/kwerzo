@@ -10,7 +10,7 @@ function generateId() {
 }
 
 const BOT_NAMES = {
-  easy:   ['Pixel', 'Wobble', 'Doodle', 'Blinky', 'Zippy'],
+  easy:   ['Joe', 'Pixel', 'Doodle', 'Blinky', 'Zippy'],
   medium: ['Nova', 'Cipher', 'Axiom', 'Prism', 'Vector'],
   hard:   ['John', 'Titan', 'Apex', 'Zenith', 'Oracle'],
 };

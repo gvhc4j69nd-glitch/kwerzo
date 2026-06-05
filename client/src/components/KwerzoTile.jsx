@@ -56,13 +56,13 @@ function Heart({ fill }) {
 
 const SHAPE_COMPONENTS = { moon: Moon, bolt: Bolt, star: Star, leaf: Leaf, hex: Hex, heart: Heart };
 
-export default function KwerzoTile({ shape, color, size = 52, selected, staged, className = '', onClick, style = {} }) {
+export default function KwerzoTile({ shape, color, size = 52, selected, staged, highlighted, className = '', onClick, style = {} }) {
   const fill = COLOR_VALUES[color] || '#888';
   const ShapeComp = SHAPE_COMPONENTS[shape];
 
   return (
     <div
-      className={`kwerzo-tile ${selected ? 'selected' : ''} ${staged ? 'staged' : ''} ${className}`}
+      className={`kwerzo-tile ${selected ? 'selected' : ''} ${staged ? 'staged' : ''} ${highlighted ? 'highlighted' : ''} ${className}`}
       style={{ width: size, height: size, cursor: onClick ? 'pointer' : 'default', ...style }}
       onClick={onClick}
       title={`${color} ${shape}`}

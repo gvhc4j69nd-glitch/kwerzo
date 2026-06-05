@@ -18,6 +18,8 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
   const [isMobile,        setIsMobile]        = useState(
     () => navigator.maxTouchPoints > 0 || window.innerWidth < 1024
   );
+  const [trayOrder,       setTrayOrder]       = useState([]);
+  const [dragTrayIdx,     setDragTrayIdx]     = useState(null);
   const transformRef = useRef(null);
 
   useEffect(() => {
@@ -35,12 +37,23 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
 
   const lastPlacedKeys = new Set((gameState?.lastPlacements || []).map(p => `${p.x},${p.y}`));
 
+  // Reset tray order when hand size changes (tiles drawn/played)
+  useEffect(() => {
+    setTrayOrder(myHand.map((_, i) => i));
+  }, [myHand.length]);
+
   // ── Socket ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!socket) return;
-    socket.on('room_update', setRoom);
-    socket.on('game_started', () => setLastMsg('Game started!'));
-    socket.on('game_update', ({ state }) => {
+    socket.on('room_update', (updatedRoom) => {
+      // Only accept updates for our room
+      if (updatedRoom.id === roomId) setRoom(updatedRoom);
+    });
+    socket.on('game_started', ({ roomId: id }) => {
+      if (id === roomId) setLastMsg('Game started!');
+    });
+    socket.on('game_update', ({ state, roomId: id }) => {
+      if (id !== roomId) return;
       setGameState(state);
       setStaged([]);
       setSelectedHandIdx(null);
@@ -48,7 +61,8 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
       setSwapSelection([]);
       setMoveError('');
     });
-    socket.on('move_made', ({ username, points, type, count }) => {
+    socket.on('move_made', ({ roomId: id, username, points, type, count }) => {
+      if (id !== roomId) return;
       if      (type === 'swap') setLastMsg(`${username} swapped ${count} tile${count !== 1 ? 's' : ''}`);
       else if (type === 'pass') setLastMsg(`${username} passed`);
       else                      setLastMsg(`${username} scored ${points} pt${points !== 1 ? 's' : ''}`);
@@ -119,6 +133,21 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
   }
   function handlePass()  { socket.emit('pass_turn', { roomId }); }
   function handleLeave() { socket.emit('leave_room', { roomId }); onLeave(); }
+
+  // Tray drag-to-reorder
+  function onTrayDragStart(i) { setDragTrayIdx(i); }
+  function onTrayDragEnter(i) {
+    if (dragTrayIdx === null || dragTrayIdx === i) return;
+    setTrayOrder(prev => {
+      const next = [...prev];
+      const from = next.indexOf(dragTrayIdx);
+      const to   = next.indexOf(i);
+      next.splice(from, 1);
+      next.splice(to, 0, dragTrayIdx);
+      return next;
+    });
+  }
+  function onTrayDragEnd() { setDragTrayIdx(null); }
 
   const validDropCells    = getValidDropCells();
 
@@ -305,10 +334,10 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
                       return (
                         <div
                           key={`tile-${k}`}
-                          className={`board-cell-wrapper${isNew ? ' last-placed' : ''}`}
+                          className="board-cell-wrapper"
                           style={{ left: (x - minX) * CELL, top: (y - minY) * CELL }}
                         >
-                          <KwerzoTile shape={tile.shape} color={tile.color} size={CELL} />
+                          <KwerzoTile shape={tile.shape} color={tile.color} size={CELL} highlighted={isNew} />
                         </div>
                       );
                     })}
@@ -379,21 +408,33 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
         {myHand.length === 0 && gameState && (
           <span className="tray-empty">No tiles</span>
         )}
-        {myHand.map((tile, i) => {
-          const used        = staged.some(s => s.handIdx === i);
-          const swapSel     = swapSelection.includes(i);
+        {(trayOrder.length === myHand.length ? trayOrder : myHand.map((_, i) => i)).map(origIdx => {
+          const tile     = myHand[origIdx];
+          if (!tile) return null;
+          const used     = staged.some(s => s.handIdx === origIdx);
+          const swapSel  = swapSelection.includes(origIdx);
+          const isSelected = selectedHandIdx === origIdx;
+          const isDragging = dragTrayIdx === origIdx;
           return (
             <div
-              key={i}
-              className={`hand-slot${used ? ' used' : ''}${swapSel ? ' swap-selected' : ''}${selectedHandIdx === i ? ' selected-slot' : ''}`}
+              key={origIdx}
+              className={`hand-slot${used ? ' used' : ''}${swapSel ? ' swap-selected' : ''}${isSelected ? ' selected-slot' : ''}${isDragging ? ' dragging-tile' : ''}`}
+              draggable
+              onDragStart={() => onTrayDragStart(origIdx)}
+              onDragEnter={() => onTrayDragEnter(origIdx)}
+              onDragEnd={onTrayDragEnd}
+              onDragOver={e => e.preventDefault()}
               onClick={() => {
-                if (swapMode) { setSwapSelection(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]); return; }
+                if (swapMode) {
+                  setSwapSelection(prev => prev.includes(origIdx) ? prev.filter(x => x !== origIdx) : [...prev, origIdx]);
+                  return;
+                }
                 if (!myTurn || used) return;
-                setSelectedHandIdx(prev => prev === i ? null : i);
+                setSelectedHandIdx(prev => prev === origIdx ? null : origIdx);
                 setMoveError('');
               }}
             >
-              <KwerzoTile shape={tile.shape} color={tile.color} size={CELL} selected={selectedHandIdx === i} />
+              <KwerzoTile shape={tile.shape} color={tile.color} size={CELL} selected={isSelected} />
             </div>
           );
         })}
