@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import KwerzoTile from '../components/KwerzoTile';
 
-const CELL   = 48;
-const WORLD  = 4000;
-const ORIGIN = WORLD / 2;
+const CELL = 56;
+const PAD  = 3;   // empty cells of padding around tiles
 
 export default function GamePage({ socket, user, roomId, initialRoom, onLeave }) {
   const [room,            setRoom]            = useState(initialRoom);
@@ -15,7 +15,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
   const [lastMsg,         setLastMsg]         = useState('');
   const [moveError,       setMoveError]       = useState('');
   const [gameOver,        setGameOver]        = useState(null);
-  const scrollRef = useRef(null);
+  const transformRef = useRef(null);
 
   const myTurn   = gameState && gameState.players[gameState.currentPlayerIndex]?.id === user.id;
   const myPlayer = gameState?.players.find(p => p.id === user.id);
@@ -54,39 +54,15 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
     };
   }, [socket]);
 
-  // ── Auto-center on game update ───────────────────────────────────────────────
+  // ── Re-center board when tiles change ───────────────────────────────────────
   useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const keys = Object.keys(gameState?.board || {});
-    let cx = 0, cy = 0;
-    if (keys.length > 0) {
-      const xs = keys.map(k => parseInt(k.split(',')[0]));
-      const ys = keys.map(k => parseInt(k.split(',')[1]));
-      cx = (Math.min(...xs) + Math.max(...xs)) / 2;
-      cy = (Math.min(...ys) + Math.max(...ys)) / 2;
-    }
-    el.scrollLeft = ORIGIN + (cx + 0.5) * CELL - el.clientWidth  / 2;
-    el.scrollTop  = ORIGIN + (cy + 0.5) * CELL - el.clientHeight / 2;
+    const t = setTimeout(() => transformRef.current?.centerView(0.9), 80);
+    return () => clearTimeout(t);
   }, [gameState?.board]);
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
   function centerBoard() {
-    const el = scrollRef.current;
-    if (!el) return;
-    const keys = Object.keys(gameState?.board || {});
-    let cx = 0, cy = 0;
-    if (keys.length > 0) {
-      const xs = keys.map(k => parseInt(k.split(',')[0]));
-      const ys = keys.map(k => parseInt(k.split(',')[1]));
-      cx = (Math.min(...xs) + Math.max(...xs)) / 2;
-      cy = (Math.min(...ys) + Math.max(...ys)) / 2;
-    }
-    el.scrollTo({
-      left:     ORIGIN + (cx + 0.5) * CELL - el.clientWidth  / 2,
-      top:      ORIGIN + (cy + 0.5) * CELL - el.clientHeight / 2,
-      behavior: 'smooth',
-    });
+    transformRef.current?.centerView(0.9, 300);
   }
 
   function getValidDropCells() {
@@ -134,6 +110,19 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
   function handleLeave() { socket.emit('leave_room', { roomId }); onLeave(); }
 
   const validDropCells    = getValidDropCells();
+
+  // Board bounds — sized to fit placed tiles + drop targets + padding
+  const allBoardKeys = new Set([...Object.keys(displayBoard), ...validDropCells]);
+  let minX = -PAD, maxX = PAD, minY = -PAD, maxY = PAD;
+  for (const k of allBoardKeys) {
+    const [x, y] = k.split(',').map(Number);
+    if (x < minX) minX = x; if (x > maxX) maxX = x;
+    if (y < minY) minY = y; if (y > maxY) maxY = y;
+  }
+  minX -= PAD; maxX += PAD; minY -= PAD; maxY += PAD;
+  const boardW = (maxX - minX + 1) * CELL;
+  const boardH = (maxY - minY + 1) * CELL;
+
   const currentTurnPlayer = gameState
     ? room?.players.find(p => p.id === gameState.players[gameState.currentPlayerIndex]?.id)
     : null;
@@ -238,46 +227,69 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
 
         {/* ── Board ── */}
         <main className="board-viewport">
-          <div className="board-scroll" ref={scrollRef}>
-            <div className="board-world" style={{ width: WORLD, height: WORLD }}>
-
-              {myTurn && selectedHandIdx !== null && [...validDropCells].map(k => {
-                const [x, y] = k.split(',').map(Number);
-                if (displayBoard[k]) return null;
-                return (
-                  <div
-                    key={`drop-${k}`}
-                    className="drop-target"
-                    style={{ position: 'absolute', left: ORIGIN + x * CELL, top: ORIGIN + y * CELL, width: CELL, height: CELL }}
-                    onClick={() => handleCellClick(x, y)}
-                  />
-                );
-              })}
-
-              {staged.map(({ x, y, tile }) => (
-                <div
-                  key={`staged-${x},${y}`}
-                  className="board-cell-wrapper staged-cell"
-                  style={{ left: ORIGIN + x * CELL, top: ORIGIN + y * CELL }}
-                  onClick={() => handleCellClick(x, y)}
+          <TransformWrapper
+            ref={transformRef}
+            initialScale={0.9}
+            minScale={0.15}
+            maxScale={4}
+            centerOnInit
+            limitToBounds={false}
+            doubleClick={{ disabled: true }}
+            panning={{ velocityDisabled: false }}
+          >
+            {({ zoomIn, zoomOut }) => (
+              <>
+                <TransformComponent
+                  wrapperStyle={{ width: '100%', height: '100%' }}
+                  contentStyle={{ width: boardW, height: boardH }}
                 >
-                  <KwerzoTile shape={tile.shape} color={tile.color} size={CELL} staged />
-                </div>
-              ))}
+                  <div className="board-world" style={{ width: boardW, height: boardH }}>
 
-              {Object.entries(displayBoard).map(([k, tile]) => {
-                if (tile._staged) return null;
-                const [x, y] = k.split(',').map(Number);
-                return (
-                  <div key={`tile-${k}`} className="board-cell-wrapper" style={{ left: ORIGIN + x * CELL, top: ORIGIN + y * CELL }}>
-                    <KwerzoTile shape={tile.shape} color={tile.color} size={CELL} />
+                    {myTurn && selectedHandIdx !== null && [...validDropCells].map(k => {
+                      const [x, y] = k.split(',').map(Number);
+                      if (displayBoard[k]) return null;
+                      return (
+                        <div
+                          key={`drop-${k}`}
+                          className="drop-target"
+                          style={{ position: 'absolute', left: (x - minX) * CELL, top: (y - minY) * CELL, width: CELL, height: CELL }}
+                          onClick={() => handleCellClick(x, y)}
+                        />
+                      );
+                    })}
+
+                    {staged.map(({ x, y, tile }) => (
+                      <div
+                        key={`staged-${x},${y}`}
+                        className="board-cell-wrapper staged-cell"
+                        style={{ left: (x - minX) * CELL, top: (y - minY) * CELL }}
+                        onClick={() => handleCellClick(x, y)}
+                      >
+                        <KwerzoTile shape={tile.shape} color={tile.color} size={CELL} staged />
+                      </div>
+                    ))}
+
+                    {Object.entries(displayBoard).map(([k, tile]) => {
+                      if (tile._staged) return null;
+                      const [x, y] = k.split(',').map(Number);
+                      return (
+                        <div key={`tile-${k}`} className="board-cell-wrapper" style={{ left: (x - minX) * CELL, top: (y - minY) * CELL }}>
+                          <KwerzoTile shape={tile.shape} color={tile.color} size={CELL} />
+                        </div>
+                      );
+                    })}
+
                   </div>
-                );
-              })}
+                </TransformComponent>
 
-            </div>
-          </div>
-          <button className="center-board-btn" onClick={centerBoard}>⊙ Center</button>
+                <div className="board-controls">
+                  <button className="board-ctrl-btn" onClick={() => zoomIn()}>+</button>
+                  <button className="board-ctrl-btn" onClick={() => zoomOut()}>−</button>
+                  <button className="board-ctrl-btn" onClick={centerBoard}>⊙</button>
+                </div>
+              </>
+            )}
+          </TransformWrapper>
         </main>
 
       </div>{/* end game-body */}
