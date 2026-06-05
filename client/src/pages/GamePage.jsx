@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import KwerzoTile from '../components/KwerzoTile';
 
-const CELL = 64;
+const CELL = 48;              // smaller cell = more tiles visible at once
 const WORLD = 4000;           // px — large scrollable canvas
 const ORIGIN = WORLD / 2;     // grid (0,0) is at pixel (ORIGIN, ORIGIN)
 
@@ -151,6 +151,22 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
 
   function handlePass() { socket.emit('pass_turn', { roomId }); }
 
+  function centerBoard() {
+    const el = scrollRef.current;
+    if (!el) return;
+    const allKeys = Object.keys(gameState?.board || {});
+    let cx = 0, cy = 0;
+    if (allKeys.length > 0) {
+      const xs = allKeys.map(k => parseInt(k.split(',')[0]));
+      const ys = allKeys.map(k => parseInt(k.split(',')[1]));
+      cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+      cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+    }
+    const px = ORIGIN + (cx + 0.5) * CELL;
+    const py = ORIGIN + (cy + 0.5) * CELL;
+    el.scrollTo({ left: px - el.clientWidth / 2, top: py - el.clientHeight / 2, behavior: 'smooth' });
+  }
+
   function handleLeave() {
     socket.emit('leave_room', { roomId });
     onLeave();
@@ -242,45 +258,49 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
                   Place {staged.length > 0 ? `(${staged.length})` : ''}
                 </button>
                 <button className="btn-secondary" onClick={() => { setSwapMode(true); setStaged([]); setSelectedHandIdx(null); }}>
-                  Swap Tiles
+                  Swap
                 </button>
                 <button className="btn-ghost" onClick={handlePass}>Pass</button>
                 {staged.length > 0 && <button className="btn-ghost" onClick={() => setStaged([])}>Clear</button>}
+                <button className="btn-ghost leave-btn" onClick={handleLeave}>Leave</button>
               </div>
             )}
 
             {myTurn && swapMode && (
               <div className="game-actions">
-                <p className="swap-hint">Select tiles to swap, then confirm:</p>
+                <p className="swap-hint">Select tiles to swap:</p>
                 <button className="btn-primary" onClick={handleSwapSubmit} disabled={swapSelection.length === 0}>
-                  Swap {swapSelection.length > 0 ? `(${swapSelection.length})` : ''}
+                  Confirm {swapSelection.length > 0 ? `(${swapSelection.length})` : ''}
                 </button>
                 <button className="btn-ghost" onClick={() => { setSwapMode(false); setSwapSelection([]); }}>Cancel</button>
+                <button className="btn-ghost leave-btn" onClick={handleLeave}>Leave</button>
               </div>
             )}
 
             {!myTurn && gameState && (
-              <div className="waiting-msg">Waiting for {currentTurnPlayer?.username}…</div>
-            )}
-
-            {!gameState && (
-              <div className="waiting-msg">
-                {room?.players.length < 2
-                  ? 'Waiting for more players…'
-                  : room?.hostId === user.id
-                    ? <button className="btn-primary" onClick={() => socket.emit('start_game', { roomId })}>Start Game</button>
-                    : 'Waiting for host to start…'
-                }
+              <div className="game-actions">
+                <div className="waiting-msg">Waiting for {currentTurnPlayer?.username}…</div>
+                <button className="btn-ghost leave-btn" onClick={handleLeave}>Leave</button>
               </div>
             )}
 
-            <button className="btn-ghost leave-btn" onClick={handleLeave}>Leave Room</button>
+            {!gameState && (
+              <div className="game-actions">
+                {room?.players.length < 2
+                  ? <div className="waiting-msg">Waiting for players…</div>
+                  : room?.hostId === user.id
+                    ? <button className="btn-primary" onClick={() => socket.emit('start_game', { roomId })}>Start Game</button>
+                    : <div className="waiting-msg">Waiting for host…</div>
+                }
+                <button className="btn-ghost leave-btn" onClick={handleLeave}>Leave</button>
+              </div>
+            )}
           </aside>
         )}
 
         {/* ── Board (native scroll) ── */}
         <main className="board-viewport">
-          <div className="board-scroll" ref={scrollRef}>
+          <div className="board-scroll" ref={scrollRef} style={{ scrollbarWidth: 'none' }}>
             <div className="board-world" style={{ width: WORLD, height: WORLD }}>
 
               {myTurn && selectedHandIdx !== null && [...validDropCells].map(k => {
@@ -330,6 +350,9 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
 
             </div>
           </div>
+          <button className="center-board-btn" onClick={centerBoard} title="Center on tiles">
+            ⊙ Center
+          </button>
         </main>
 
       </div>{/* end game-body */}
@@ -379,60 +402,55 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
         </div>
       )}
 
-      {/* ── Hand ── */}
+      {/* ── Tile tray — full width, single row ── */}
       <div style={{
         flexShrink: 0,
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
-        gap: '10px',
-        padding: '10px 14px',
+        gap: '6px',
+        padding: '8px 10px',
         background: 'var(--surface)',
         borderTop: '1px solid var(--border)',
+        overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        msOverflowStyle: 'none',
+        scrollbarWidth: 'none',
       }}>
-        <span style={{ flexShrink: 0, fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-          Your tiles:
-        </span>
-        <div style={{
-          flex: 1,
-          minWidth: 0,
-          display: 'flex',
-          flexDirection: 'row',
-          flexWrap: 'nowrap',
-          gap: '8px',
-          overflowX: 'auto',
-          WebkitOverflowScrolling: 'touch',
-        }}>
-          {myHand.map((tile, i) => {
-            const isUsedInStage = staged.some(s => s.handIdx === i);
-            const isSwapSelected = swapSelection.includes(i);
-            return (
-              <div
-                key={i}
-                style={{ flexShrink: 0 }}
-                className={`hand-slot ${isUsedInStage ? 'used' : ''} ${isSwapSelected ? 'swap-selected' : ''}`}
-                onClick={() => {
-                  if (swapMode) {
-                    setSwapSelection(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]);
-                    return;
-                  }
-                  if (!myTurn) return;
-                  if (isUsedInStage) return;
-                  setSelectedHandIdx(prev => prev === i ? null : i);
-                  setMoveError('');
-                }}
-              >
-                <KwerzoTile
-                  shape={tile.shape}
-                  color={tile.color}
-                  size={52}
-                  selected={selectedHandIdx === i}
-                  className={isUsedInStage ? 'tile-ghost' : ''}
-                />
-              </div>
-            );
-          })}
-        </div>
+        {myHand.length === 0 && (
+          <span style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+            {gameState ? 'No tiles in hand' : 'Game not started'}
+          </span>
+        )}
+        {myHand.map((tile, i) => {
+          const isUsedInStage = staged.some(s => s.handIdx === i);
+          const isSwapSelected = swapSelection.includes(i);
+          return (
+            <div
+              key={i}
+              style={{ flexShrink: 0 }}
+              className={`hand-slot ${isUsedInStage ? 'used' : ''} ${isSwapSelected ? 'swap-selected' : ''}`}
+              onClick={() => {
+                if (swapMode) {
+                  setSwapSelection(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]);
+                  return;
+                }
+                if (!myTurn) return;
+                if (isUsedInStage) return;
+                setSelectedHandIdx(prev => prev === i ? null : i);
+                setMoveError('');
+              }}
+            >
+              <KwerzoTile
+                shape={tile.shape}
+                color={tile.color}
+                size={52}
+                selected={selectedHandIdx === i}
+                className={isUsedInStage ? 'tile-ghost' : ''}
+              />
+            </div>
+          );
+        })}
       </div>
 
     </div>

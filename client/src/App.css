@@ -293,18 +293,18 @@
 
 /* Sidebar */
 .game-sidebar {
-  width: 220px;
-  min-width: 220px;
+  width: 160px;
+  min-width: 160px;
   background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  padding: 16px 14px;
-  gap: 12px;
+  padding: 12px 10px;
+  gap: 8px;
   overflow-y: auto;
 }
 
-.sidebar-logo { font-size: 22px; font-weight: 900; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo { font-size: 18px; font-weight: 900; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
 
 .players-panel { display: flex; flex-direction: column; gap: 6px; }
 
@@ -360,7 +360,7 @@
   padding: 12px 0;
 }
 
-.leave-btn { margin-top: auto; }
+.leave-btn { margin-top: 4px; }
 
 /* Board */
 .board-viewport {
@@ -376,7 +376,9 @@
   overflow: scroll;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  scrollbar-width: none;
 }
+.board-scroll::-webkit-scrollbar { display: none; }
 
 .board-world {
   position: relative;
@@ -393,6 +395,27 @@
   align-items: center;
   justify-content: center;
 }
+
+.center-board-btn {
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  z-index: 20;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.15s;
+}
+.center-board-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
 
 .staged-cell { z-index: 2; cursor: pointer; }
 
