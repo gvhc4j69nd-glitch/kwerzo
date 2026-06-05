@@ -23,10 +23,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
   const [zoom, setZoom] = useState(1);
   const panRef = useRef(pan);
   const zoomRef = useRef(1);
-  const dragging = useRef(false);
-  const dragStart = useRef(null);
-  const lastTouchDist = useRef(null);
-  const touchMoved = useRef(false);
+  const pointersRef = useRef(new Map());
   const boardRef = useRef(null);
 
   panRef.current = pan;
@@ -98,93 +95,52 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
     setPan({ x: rect.width / 2 - cx * CELL, y: rect.height / 2 - cy * CELL });
   }, [!!gameState?.board && Object.keys(gameState.board || {}).length > 0]);
 
-  // Touch pan + pinch-zoom (non-passive touchmove to allow preventDefault)
-  useEffect(() => {
-    const el = boardRef.current;
-    if (!el) return;
-    let startX = 0, startY = 0;
-
-    function onTouchStart(e) {
-      e.preventDefault();
-      if (e.touches.length === 1) {
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        dragStart.current = {
-          x: e.touches[0].clientX - panRef.current.x,
-          y: e.touches[0].clientY - panRef.current.y
-        };
-        touchMoved.current = false;
-        lastTouchDist.current = null;
-      } else if (e.touches.length === 2) {
-        dragging.current = false;
-        touchMoved.current = false;
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        lastTouchDist.current = Math.sqrt(dx * dx + dy * dy);
-      }
-    }
-
-    function onTouchMove(e) {
-      if (e.touches.length === 1 && dragStart.current) {
-        const mdx = e.touches[0].clientX - startX;
-        const mdy = e.touches[0].clientY - startY;
-        if (!touchMoved.current && Math.sqrt(mdx * mdx + mdy * mdy) > 6) {
-          touchMoved.current = true;
-          dragging.current = true;
-        }
-        if (touchMoved.current) {
-          e.preventDefault();
-          setPan({
-            x: e.touches[0].clientX - dragStart.current.x,
-            y: e.touches[0].clientY - dragStart.current.y
-          });
-        }
-      } else if (e.touches.length === 2 && lastTouchDist.current !== null) {
-        e.preventDefault();
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const oldZoom = zoomRef.current;
-        const newZoom = Math.min(2.5, Math.max(0.3, oldZoom * (dist / lastTouchDist.current)));
-        const rect = el.getBoundingClientRect();
-        const pcx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
-        const pcy = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
-        setPan(p => ({
-          x: pcx + (p.x - pcx) * newZoom / oldZoom,
-          y: pcy + (p.y - pcy) * newZoom / oldZoom
-        }));
-        setZoom(newZoom);
-        lastTouchDist.current = dist;
-      }
-    }
-
-    function onTouchEnd() {
-      dragging.current = false;
-      touchMoved.current = false;
-      lastTouchDist.current = null;
-    }
-
-    el.addEventListener('touchstart', onTouchStart, { passive: false });
-    el.addEventListener('touchmove', onTouchMove, { passive: false });
-    el.addEventListener('touchend', onTouchEnd, { passive: true });
-    return () => {
-      el.removeEventListener('touchstart', onTouchStart);
-      el.removeEventListener('touchmove', onTouchMove);
-      el.removeEventListener('touchend', onTouchEnd);
+  // Unified pointer-event pan + pinch-zoom (works for mouse, touch, stylus on all browsers)
+  function getPinchInfo(pts) {
+    const [a, b] = pts;
+    const dx = a.x - b.x, dy = a.y - b.y;
+    return {
+      dist: Math.sqrt(dx * dx + dy * dy),
+      cx: (a.x + b.x) / 2,
+      cy: (a.y + b.y) / 2,
     };
-  }, []);
+  }
 
-  // Mouse pan handlers
-  function onMouseDown(e) {
-    if (e.button !== 0) return;
-    dragging.current = true;
-    dragStart.current = { x: e.clientX - panRef.current.x, y: e.clientY - panRef.current.y };
+  function onPointerDown(e) {
+    boardRef.current.setPointerCapture(e.pointerId);
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
   }
-  function onMouseMove(e) {
-    if (!dragging.current) return;
-    setPan({ x: e.clientX - dragStart.current.x, y: e.clientY - dragStart.current.y });
+
+  function onPointerMove(e) {
+    if (!pointersRef.current.has(e.pointerId)) return;
+    const prev = new Map(pointersRef.current);
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const pts = [...pointersRef.current.values()];
+
+    if (pts.length === 1) {
+      const p = prev.get(e.pointerId);
+      setPan(pan => ({ x: pan.x + e.clientX - p.x, y: pan.y + e.clientY - p.y }));
+    } else if (pts.length === 2) {
+      const prevPts = [...prev.values()];
+      if (prevPts.length < 2) return;
+      const before = getPinchInfo(prevPts);
+      const after = getPinchInfo(pts);
+      const oldZoom = zoomRef.current;
+      const newZoom = Math.min(2.5, Math.max(0.3, oldZoom * (after.dist / before.dist)));
+      const rect = boardRef.current.getBoundingClientRect();
+      const pcx = after.cx - rect.left;
+      const pcy = after.cy - rect.top;
+      setPan(p => ({
+        x: pcx + (p.x - pcx) * newZoom / oldZoom + (after.cx - before.cx),
+        y: pcy + (p.y - pcy) * newZoom / oldZoom + (after.cy - before.cy),
+      }));
+      setZoom(newZoom);
+    }
   }
-  function onMouseUp() { dragging.current = false; }
+
+  function onPointerUp(e) {
+    pointersRef.current.delete(e.pointerId);
+  }
 
   function handleZoom(delta) {
     const oldZoom = zoomRef.current;
@@ -391,10 +347,10 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
         className="board-viewport"
         ref={boardRef}
         style={{ touchAction: 'none' }}
-        onMouseDown={onMouseDown}
-        onMouseMove={onMouseMove}
-        onMouseUp={onMouseUp}
-        onMouseLeave={onMouseUp}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
       >
         <div
           className="board-container"
