@@ -12,7 +12,7 @@ function generateId() {
 const BOT_NAMES = {
   easy:   ['Pixel', 'Wobble', 'Doodle', 'Blinky', 'Zippy'],
   medium: ['Nova', 'Cipher', 'Axiom', 'Prism', 'Vector'],
-  hard:   ['Nexus', 'Oracle', 'Titan', 'Apex', 'Zenith'],
+  hard:   ['John', 'Titan', 'Apex', 'Zenith', 'Oracle'],
 };
 
 function addBot(roomId, difficulty) {
@@ -192,6 +192,7 @@ function handlePass(roomId, userId) {
   if (result.error) return { error: result.error };
 
   room.gameState = result.newState;
+  if (room.gameState.status === 'finished') room.status = 'finished';
   return { result, room };
 }
 

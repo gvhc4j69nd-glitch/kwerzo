@@ -345,6 +345,16 @@
 }
 .board-cell-wrapper { position: absolute; display: flex; align-items: center; justify-content: center; }
 .staged-cell { z-index: 2; cursor: pointer; }
+
+.last-placed {
+  z-index: 3;
+  animation: tile-highlight 2s ease-out forwards;
+}
+@keyframes tile-highlight {
+  0%   { filter: drop-shadow(0 0 8px rgba(251,191,36,1))   brightness(1.25); }
+  60%  { filter: drop-shadow(0 0 6px rgba(251,191,36,0.8)) brightness(1.1); }
+  100% { filter: none; }
+}
 .drop-target {
   position: absolute;
   border: 2px dashed rgba(124,58,237,0.45);

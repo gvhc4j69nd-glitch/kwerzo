@@ -211,7 +211,8 @@ function applyMove(state, userId, placements) {
   );
 
   let status = state.status;
-  if (newHand.length === 0 && newBag.length === 0) {
+  // Game ends when the current player empties their hand (bag may already be empty)
+  if (newHand.length === 0) {
     status = 'finished';
     newPlayers[playerIdx] = { ...newPlayers[playerIdx], score: newPlayers[playerIdx].score + KWERZO_BONUS };
   }
@@ -229,6 +230,8 @@ function applyMove(state, userId, placements) {
       currentPlayerIndex: nextPlayerIndex,
       status,
       lastMoveAt: Date.now(),
+      lastPlacements: placements.map(({ x, y }) => ({ x, y })),
+      consecutivePasses: 0,
       moveHistory: [...(state.moveHistory || []), { type: 'place', userId, placements, points }]
     },
     points
@@ -263,6 +266,8 @@ function applySwap(state, userId, tiles) {
       players: newPlayers,
       currentPlayerIndex: (state.currentPlayerIndex + 1) % state.players.length,
       lastMoveAt: Date.now(),
+      lastPlacements: [],
+      consecutivePasses: 0,
       moveHistory: [...(state.moveHistory || []), { type: 'swap', userId, count: tiles.length }]
     }
   };
@@ -272,11 +277,18 @@ function applyPass(state, userId) {
   const playerIdx = state.players.findIndex(p => p.id === userId);
   if (playerIdx !== state.currentPlayerIndex) return { error: 'Not your turn' };
 
+  const newPasses = (state.consecutivePasses || 0) + 1;
+  // Deadlock: every player has passed once — end the game
+  const status = newPasses >= state.players.length ? 'finished' : state.status;
+
   return {
     newState: {
       ...state,
       currentPlayerIndex: (state.currentPlayerIndex + 1) % state.players.length,
+      status,
       lastMoveAt: Date.now(),
+      lastPlacements: [],
+      consecutivePasses: newPasses,
       moveHistory: [...(state.moveHistory || []), { type: 'pass', userId }]
     }
   };
@@ -286,6 +298,7 @@ function getStateForPlayer(state, playerId) {
   return {
     ...state,
     bag: state.bag.length,
+    lastPlacements: state.lastPlacements || [],
     players: state.players.map(p => ({
       id: p.id,
       score: p.score,

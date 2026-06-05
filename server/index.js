@@ -220,9 +220,13 @@ io.on('connection', (socket) => {
   socket.on('pass_turn', ({ roomId }) => {
     const result = roomManager.handlePass(roomId, userId);
     if (result.error) { socket.emit('move_error', result.error); return; }
-    broadcastGameState(result.room);
-    io.to(roomId).emit('move_made', { roomId, userId, username, type: 'pass' });
-    scheduleBotMoves(roomId, 900);
+    if (result.room.status === 'finished') {
+      handleGameOver(result.room);
+    } else {
+      broadcastGameState(result.room);
+      io.to(roomId).emit('move_made', { roomId, userId, username, type: 'pass' });
+      scheduleBotMoves(roomId, 900);
+    }
   });
 
   socket.on('disconnect', () => {

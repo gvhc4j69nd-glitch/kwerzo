@@ -33,6 +33,8 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
   const displayBoard = { ...(gameState?.board || {}) };
   for (const { x, y, tile } of staged) displayBoard[`${x},${y}`] = { ...tile, _staged: true };
 
+  const lastPlacedKeys = new Set((gameState?.lastPlacements || []).map(p => `${p.x},${p.y}`));
+
   // ── Socket ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!socket) return;
@@ -299,8 +301,13 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
                     {Object.entries(displayBoard).map(([k, tile]) => {
                       if (tile._staged) return null;
                       const [x, y] = k.split(',').map(Number);
+                      const isNew = lastPlacedKeys.has(k);
                       return (
-                        <div key={`tile-${k}`} className="board-cell-wrapper" style={{ left: (x - minX) * CELL, top: (y - minY) * CELL }}>
+                        <div
+                          key={`tile-${k}`}
+                          className={`board-cell-wrapper${isNew ? ' last-placed' : ''}`}
+                          style={{ left: (x - minX) * CELL, top: (y - minY) * CELL }}
+                        >
                           <KwerzoTile shape={tile.shape} color={tile.color} size={CELL} />
                         </div>
                       );
