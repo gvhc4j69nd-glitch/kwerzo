@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useState, useRef } from 'react';
 import KwerzoTile from '../components/KwerzoTile';
 
 const CELL = 64;
@@ -18,16 +18,9 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
     (navigator.maxTouchPoints > 0 && window.innerWidth <= 1024)
   );
 
-  // Board pan/zoom state
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const panRef = useRef(pan);
-  const zoomRef = useRef(1);
-  const pointersRef = useRef(new Map());
+  // Board transform (auto-fit only)
+  const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const boardRef = useRef(null);
-
-  panRef.current = pan;
-  zoomRef.current = zoom;
 
   const myTurn = gameState &&
     gameState.players[gameState.currentPlayerIndex]?.id === user.id;
@@ -82,80 +75,42 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
     };
   }, []);
 
-  // Auto-center board on first tiles
-  useEffect(() => {
-    if (!gameState?.board || !boardRef.current) return;
-    const keys = Object.keys(gameState.board);
-    if (keys.length === 0) return;
-    const xs = keys.map(k => parseInt(k.split(',')[0]));
-    const ys = keys.map(k => parseInt(k.split(',')[1]));
-    const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
-    const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+  // Auto-fit: recompute transform whenever tiles change
+  useLayoutEffect(() => {
+    if (!boardRef.current) return;
     const rect = boardRef.current.getBoundingClientRect();
-    setPan({ x: rect.width / 2 - cx * CELL, y: rect.height / 2 - cy * CELL });
-  }, [!!gameState?.board && Object.keys(gameState.board || {}).length > 0]);
+    if (rect.width === 0 || rect.height === 0) return;
 
-  // Unified pointer-event pan + pinch-zoom (works for mouse, touch, stylus on all browsers)
-  function getPinchInfo(pts) {
-    const [a, b] = pts;
-    const dx = a.x - b.x, dy = a.y - b.y;
-    return {
-      dist: Math.sqrt(dx * dx + dy * dy),
-      cx: (a.x + b.x) / 2,
-      cy: (a.y + b.y) / 2,
-    };
-  }
+    const allKeys = [
+      ...Object.keys(gameState?.board || {}),
+      ...staged.map(s => `${s.x},${s.y}`)
+    ];
 
-  function onPointerDown(e) {
-    boardRef.current.setPointerCapture(e.pointerId);
-    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-  }
-
-  function onPointerMove(e) {
-    if (!pointersRef.current.has(e.pointerId)) return;
-    const prev = new Map(pointersRef.current);
-    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    const pts = [...pointersRef.current.values()];
-
-    if (pts.length === 1) {
-      const p = prev.get(e.pointerId);
-      setPan(pan => ({ x: pan.x + e.clientX - p.x, y: pan.y + e.clientY - p.y }));
-    } else if (pts.length === 2) {
-      const prevPts = [...prev.values()];
-      if (prevPts.length < 2) return;
-      const before = getPinchInfo(prevPts);
-      const after = getPinchInfo(pts);
-      const oldZoom = zoomRef.current;
-      const newZoom = Math.min(2.5, Math.max(0.3, oldZoom * (after.dist / before.dist)));
-      const rect = boardRef.current.getBoundingClientRect();
-      const pcx = after.cx - rect.left;
-      const pcy = after.cy - rect.top;
-      setPan(p => ({
-        x: pcx + (p.x - pcx) * newZoom / oldZoom + (after.cx - before.cx),
-        y: pcy + (p.y - pcy) * newZoom / oldZoom + (after.cy - before.cy),
-      }));
-      setZoom(newZoom);
+    if (allKeys.length === 0) {
+      setTransform({ x: rect.width / 2, y: rect.height / 2, scale: 1 });
+      return;
     }
-  }
 
-  function onPointerUp(e) {
-    pointersRef.current.delete(e.pointerId);
-  }
+    const xs = allKeys.map(k => parseInt(k.split(',')[0]));
+    const ys = allKeys.map(k => parseInt(k.split(',')[1]));
+    const minTX = Math.min(...xs);
+    const maxTX = Math.max(...xs);
+    const minTY = Math.min(...ys);
+    const maxTY = Math.max(...ys);
 
-  function handleZoom(delta) {
-    const oldZoom = zoomRef.current;
-    const newZoom = Math.min(2.5, Math.max(0.3, oldZoom + delta));
-    if (boardRef.current) {
-      const rect = boardRef.current.getBoundingClientRect();
-      const cx = rect.width / 2;
-      const cy = rect.height / 2;
-      setPan(p => ({
-        x: cx + (p.x - cx) * newZoom / oldZoom,
-        y: cy + (p.y - cy) * newZoom / oldZoom
-      }));
-    }
-    setZoom(newZoom);
-  }
+    const contentW = (maxTX - minTX + 1) * CELL;
+    const contentH = (maxTY - minTY + 1) * CELL;
+    const pad = 48;
+    const scale = Math.min(
+      (rect.width - pad * 2) / contentW,
+      (rect.height - pad * 2) / contentH,
+      1.5
+    );
+
+    const x = rect.width / 2 - ((minTX + maxTX) / 2 + 0.5) * CELL * scale;
+    const y = rect.height / 2 - ((minTY + maxTY) / 2 + 0.5) * CELL * scale;
+    setTransform({ x, y, scale });
+  }, [gameState?.board, staged]);
 
   function getValidDropCells() {
     if (!myTurn || selectedHandIdx === null) return new Set();
@@ -250,7 +205,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
     : null;
 
   return (
-    <div className={`game-page${isMobile ? ' game-page-mobile' : ''}`}>
+    <div className="game-page">
 
       {/* ── Mobile top bar ── */}
       {isMobile && (
@@ -271,6 +226,8 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
           <button className="mobile-leave-btn" onClick={handleLeave}>✕</button>
         </div>
       )}
+
+      <div className="game-body">
 
       {/* ── Desktop sidebar ── */}
       {!isMobile && (
@@ -343,19 +300,11 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
       )}
 
       {/* ── Board ── */}
-      <main
-        className="board-viewport"
-        ref={boardRef}
-        style={{ touchAction: 'none' }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-      >
+      <main className="board-viewport" ref={boardRef}>
         <div
           className="board-container"
           style={{
-            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
             transformOrigin: '0 0',
             width: boardW,
             height: boardH
@@ -401,15 +350,11 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
           })}
         </div>
 
-        <div className="zoom-controls">
-          <button className="zoom-btn" onMouseDown={e => e.stopPropagation()} onClick={() => handleZoom(0.15)} title="Zoom in">+</button>
-          <button className="zoom-btn" onMouseDown={e => e.stopPropagation()} onClick={() => handleZoom(-0.15)} title="Zoom out">−</button>
-        </div>
-
-        <div className="board-hint">{isMobile ? 'Drag · pinch to zoom' : 'Drag to pan · +/− to zoom'}</div>
       </main>
 
-      {/* ── Mobile controls (actions + status, shown above hand bar) ── */}
+      </div>{/* end game-body */}
+
+      {/* ── Mobile controls (actions + status) ── */}
       {isMobile && (
         <div className="mobile-controls">
           {(lastMsg || moveError) && (
@@ -455,7 +400,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
       )}
 
       {/* ── Hand ── */}
-      <div className={`hand-bar${isMobile ? ' hand-bar-mobile' : ''}`}>
+      <div className="hand-bar">
         <div className="hand-label">Your tiles:</div>
         <div className="hand-tiles">
           {myHand.map((tile, i) => {
@@ -479,7 +424,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
                 <KwerzoTile
                   shape={tile.shape}
                   color={tile.color}
-                  size={isMobile ? 48 : 56}
+                  size={52}
                   selected={selectedHandIdx === i}
                   className={isUsedInStage ? 'tile-ghost' : ''}
                 />
