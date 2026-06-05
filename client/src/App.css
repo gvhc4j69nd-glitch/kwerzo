@@ -278,6 +278,7 @@
 .game-page {
   display: flex;
   height: 100vh;
+  height: 100dvh;
   background: var(--bg);
 }
 
@@ -532,10 +533,15 @@
 /* ── Mobile game layout ── */
 .game-page-mobile {
   flex-direction: column;
+  overflow: hidden;
+  touch-action: none;
+  overscroll-behavior: none;
 }
 .game-page-mobile .board-viewport {
   flex: 1;
   min-height: 0;
+  touch-action: none;
+  overscroll-behavior: none;
 }
 
 /* Mobile top bar */
@@ -645,25 +651,20 @@
   font-size: 13px !important;
 }
 
-/* Hand bar — mobile: static in flex flow, full width */
+/* Hand bar — mobile: static in flex flow, horizontal row */
 .hand-bar-mobile {
   position: static;
   left: auto;
   bottom: auto;
   right: auto;
   flex-shrink: 0;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
+  gap: 10px;
   padding: 8px 12px;
 }
 .hand-bar-mobile .hand-tiles {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
 }
-.game-page-mobile {
-  overflow: hidden;
-}
-
 /* Prevent iOS text selection / callout on board */
 .board-viewport {
   -webkit-user-select: none;
