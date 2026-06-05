@@ -365,17 +365,27 @@
 /* Board */
 .board-viewport {
   flex: 1;
-  overflow: hidden;
-  position: relative;
   min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.board-scroll {
+  flex: 1;
+  overflow: scroll;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.board-world {
+  position: relative;
   background:
     radial-gradient(ellipse at 20% 20%, rgba(124,58,237,0.06) 0%, transparent 50%),
     repeating-linear-gradient(0deg, transparent, transparent 63px, rgba(255,255,255,0.03) 63px, rgba(255,255,255,0.03) 64px),
     repeating-linear-gradient(90deg, transparent, transparent 63px, rgba(255,255,255,0.03) 63px, rgba(255,255,255,0.03) 64px),
     var(--bg);
 }
-
-.board-container { position: absolute; }
 
 .board-cell-wrapper {
   position: absolute;
@@ -397,43 +407,6 @@
 }
 .drop-target:hover { background: rgba(124,58,237,0.15); border-color: var(--primary); }
 
-.board-hint {
-  position: absolute;
-  bottom: 16px;
-  right: 20px;
-  font-size: 11px;
-  color: rgba(255,255,255,0.2);
-  pointer-events: none;
-}
-
-.zoom-controls {
-  position: absolute;
-  top: 12px;
-  right: 16px;
-  z-index: 20;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.zoom-btn {
-  width: 36px;
-  height: 36px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text);
-  font-size: 18px;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s, border-color 0.15s;
-  line-height: 1;
-  user-select: none;
-}
-.zoom-btn:hover { background: var(--primary); border-color: var(--primary); color: #fff; }
 
 /* Hand bar — always in-flow at bottom, horizontal row */
 .hand-bar {

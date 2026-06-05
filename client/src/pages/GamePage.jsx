@@ -1,7 +1,9 @@
-import React, { useEffect, useLayoutEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import KwerzoTile from '../components/KwerzoTile';
 
 const CELL = 64;
+const WORLD = 4000;           // px — large scrollable canvas
+const ORIGIN = WORLD / 2;     // grid (0,0) is at pixel (ORIGIN, ORIGIN)
 
 export default function GamePage({ socket, user, roomId, initialRoom, onLeave }) {
   const [room, setRoom] = useState(initialRoom);
@@ -18,9 +20,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
     (navigator.maxTouchPoints > 0 && window.innerWidth <= 1024)
   );
 
-  // Board transform (auto-fit only)
-  const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
-  const boardRef = useRef(null);
+  const scrollRef = useRef(null);
 
   const myTurn = gameState &&
     gameState.players[gameState.currentPlayerIndex]?.id === user.id;
@@ -61,7 +61,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
     };
   }, [socket]);
 
-  // Mobile detection — mirrors CSS breakpoint + touch capability
+  // Mobile detection
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 768px)');
     const update = () => setIsMobile(
@@ -75,42 +75,33 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
     };
   }, []);
 
-  // Auto-fit: recompute transform whenever tiles change
-  useLayoutEffect(() => {
-    if (!boardRef.current) return;
-    const rect = boardRef.current.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return;
+  // Scroll board to center on all placed tiles whenever game state changes
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
 
     const allKeys = [
       ...Object.keys(gameState?.board || {}),
       ...staged.map(s => `${s.x},${s.y}`)
     ];
 
+    let cx, cy;
     if (allKeys.length === 0) {
-      setTransform({ x: rect.width / 2, y: rect.height / 2, scale: 1 });
-      return;
+      cx = 0; cy = 0;
+    } else {
+      const xs = allKeys.map(k => parseInt(k.split(',')[0]));
+      const ys = allKeys.map(k => parseInt(k.split(',')[1]));
+      cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+      cy = (Math.min(...ys) + Math.max(...ys)) / 2;
     }
 
-    const xs = allKeys.map(k => parseInt(k.split(',')[0]));
-    const ys = allKeys.map(k => parseInt(k.split(',')[1]));
-    const minTX = Math.min(...xs);
-    const maxTX = Math.max(...xs);
-    const minTY = Math.min(...ys);
-    const maxTY = Math.max(...ys);
+    // pixel center of the tile group in world coords
+    const px = ORIGIN + (cx + 0.5) * CELL;
+    const py = ORIGIN + (cy + 0.5) * CELL;
 
-    const contentW = (maxTX - minTX + 1) * CELL;
-    const contentH = (maxTY - minTY + 1) * CELL;
-    const pad = 48;
-    const scale = Math.min(
-      (rect.width - pad * 2) / contentW,
-      (rect.height - pad * 2) / contentH,
-      1.5
-    );
-
-    const x = rect.width / 2 - ((minTX + maxTX) / 2 + 0.5) * CELL * scale;
-    const y = rect.height / 2 - ((minTY + maxTY) / 2 + 0.5) * CELL * scale;
-    setTransform({ x, y, scale });
-  }, [gameState?.board, staged]);
+    el.scrollLeft = px - el.clientWidth / 2;
+    el.scrollTop  = py - el.clientHeight / 2;
+  }, [gameState?.board]);
 
   function getValidDropCells() {
     if (!myTurn || selectedHandIdx === null) return new Set();
@@ -167,18 +158,6 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
 
   const validDropCells = getValidDropCells();
 
-  const allKeys = new Set([...Object.keys(displayBoard), ...validDropCells]);
-  let minX = 0, maxX = 0, minY = 0, maxY = 0;
-  for (const k of allKeys) {
-    const [x, y] = k.split(',').map(Number);
-    if (x < minX) minX = x; if (x > maxX) maxX = x;
-    if (y < minY) minY = y; if (y > maxY) maxY = y;
-  }
-  minX -= 1; maxX += 1; minY -= 1; maxY += 1;
-
-  const boardW = (maxX - minX + 1) * CELL;
-  const boardH = (maxY - minY + 1) * CELL;
-
   if (gameOver) {
     return (
       <div className="game-over-screen">
@@ -229,132 +208,133 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
 
       <div className="game-body">
 
-      {/* ── Desktop sidebar ── */}
-      {!isMobile && (
-        <aside className="game-sidebar">
-          <div className="sidebar-logo">
-            <span className="logo-k">K</span>wer<span className="logo-z">z</span>o
-          </div>
+        {/* ── Desktop sidebar ── */}
+        {!isMobile && (
+          <aside className="game-sidebar">
+            <div className="sidebar-logo">
+              <span className="logo-k">K</span>wer<span className="logo-z">z</span>o
+            </div>
 
-          <div className="players-panel">
-            {room?.players.map(rp => {
-              const gp = gameState?.players.find(p => p.id === rp.id);
-              const isCurrentTurn = gameState?.players[gameState.currentPlayerIndex]?.id === rp.id;
-              return (
-                <div key={rp.id} className={`player-row ${isCurrentTurn ? 'active-turn' : ''} ${rp.id === user.id ? 'me' : ''}`}>
-                  <div className="player-name">
-                    {isCurrentTurn && <span className="turn-arrow">▶</span>}
-                    {rp.username}{rp.id === user.id && ' (you)'}
+            <div className="players-panel">
+              {room?.players.map(rp => {
+                const gp = gameState?.players.find(p => p.id === rp.id);
+                const isCurrentTurn = gameState?.players[gameState.currentPlayerIndex]?.id === rp.id;
+                return (
+                  <div key={rp.id} className={`player-row ${isCurrentTurn ? 'active-turn' : ''} ${rp.id === user.id ? 'me' : ''}`}>
+                    <div className="player-name">
+                      {isCurrentTurn && <span className="turn-arrow">▶</span>}
+                      {rp.username}{rp.id === user.id && ' (you)'}
+                    </div>
+                    <div className="player-score">{gp?.score ?? 0} pts</div>
+                    {gp && rp.id !== user.id && <div className="hand-size">{gp.handSize} tiles</div>}
                   </div>
-                  <div className="player-score">{gp?.score ?? 0} pts</div>
-                  {gp && rp.id !== user.id && <div className="hand-size">{gp.handSize} tiles</div>}
-                </div>
-              );
-            })}
-          </div>
-
-          {gameState && <div className="bag-count">🎒 {gameState.bag} tile{gameState.bag !== 1 ? 's' : ''} in bag</div>}
-          {lastMsg && <div className="last-msg">{lastMsg}</div>}
-          {moveError && <div className="move-error">{moveError}</div>}
-
-          {myTurn && !swapMode && (
-            <div className="game-actions">
-              <button className="btn-primary" onClick={handleSubmit} disabled={staged.length === 0}>
-                Place {staged.length > 0 ? `(${staged.length})` : ''}
-              </button>
-              <button className="btn-secondary" onClick={() => { setSwapMode(true); setStaged([]); setSelectedHandIdx(null); }}>
-                Swap Tiles
-              </button>
-              <button className="btn-ghost" onClick={handlePass}>Pass</button>
-              {staged.length > 0 && <button className="btn-ghost" onClick={() => setStaged([])}>Clear</button>}
+                );
+              })}
             </div>
-          )}
 
-          {myTurn && swapMode && (
-            <div className="game-actions">
-              <p className="swap-hint">Select tiles to swap, then confirm:</p>
-              <button className="btn-primary" onClick={handleSwapSubmit} disabled={swapSelection.length === 0}>
-                Swap {swapSelection.length > 0 ? `(${swapSelection.length})` : ''}
-              </button>
-              <button className="btn-ghost" onClick={() => { setSwapMode(false); setSwapSelection([]); }}>Cancel</button>
-            </div>
-          )}
+            {gameState && <div className="bag-count">🎒 {gameState.bag} tile{gameState.bag !== 1 ? 's' : ''} in bag</div>}
+            {lastMsg && <div className="last-msg">{lastMsg}</div>}
+            {moveError && <div className="move-error">{moveError}</div>}
 
-          {!myTurn && gameState && (
-            <div className="waiting-msg">Waiting for {currentTurnPlayer?.username}…</div>
-          )}
-
-          {!gameState && (
-            <div className="waiting-msg">
-              {room?.players.length < 2
-                ? 'Waiting for more players…'
-                : room?.hostId === user.id
-                  ? <button className="btn-primary" onClick={() => socket.emit('start_game', { roomId })}>Start Game</button>
-                  : 'Waiting for host to start…'
-              }
-            </div>
-          )}
-
-          <button className="btn-ghost leave-btn" onClick={handleLeave}>Leave Room</button>
-        </aside>
-      )}
-
-      {/* ── Board ── */}
-      <main className="board-viewport" ref={boardRef}>
-        <div
-          className="board-container"
-          style={{
-            transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
-            transformOrigin: '0 0',
-            width: boardW,
-            height: boardH
-          }}
-        >
-          {myTurn && selectedHandIdx !== null && [...validDropCells].map(k => {
-            const [x, y] = k.split(',').map(Number);
-            if (displayBoard[k]) return null;
-            return (
-              <div
-                key={`drop-${k}`}
-                className="drop-target"
-                style={{ left: (x - minX) * CELL, top: (y - minY) * CELL, width: CELL, height: CELL }}
-                onClick={(e) => { e.stopPropagation(); handleCellClick(x, y); }}
-              />
-            );
-          })}
-
-          {staged.map(({ x, y, tile }) => (
-            <div
-              key={`staged-${x},${y}`}
-              className="board-cell-wrapper staged-cell"
-              style={{ left: (x - minX) * CELL, top: (y - minY) * CELL }}
-              onClick={(e) => { e.stopPropagation(); handleCellClick(x, y); }}
-              title="Tap to remove"
-            >
-              <KwerzoTile shape={tile.shape} color={tile.color} size={CELL} staged />
-            </div>
-          ))}
-
-          {Object.entries(displayBoard).map(([k, tile]) => {
-            if (tile._staged) return null;
-            const [x, y] = k.split(',').map(Number);
-            return (
-              <div
-                key={`tile-${k}`}
-                className="board-cell-wrapper"
-                style={{ left: (x - minX) * CELL, top: (y - minY) * CELL }}
-              >
-                <KwerzoTile shape={tile.shape} color={tile.color} size={CELL} />
+            {myTurn && !swapMode && (
+              <div className="game-actions">
+                <button className="btn-primary" onClick={handleSubmit} disabled={staged.length === 0}>
+                  Place {staged.length > 0 ? `(${staged.length})` : ''}
+                </button>
+                <button className="btn-secondary" onClick={() => { setSwapMode(true); setStaged([]); setSelectedHandIdx(null); }}>
+                  Swap Tiles
+                </button>
+                <button className="btn-ghost" onClick={handlePass}>Pass</button>
+                {staged.length > 0 && <button className="btn-ghost" onClick={() => setStaged([])}>Clear</button>}
               </div>
-            );
-          })}
-        </div>
+            )}
 
-      </main>
+            {myTurn && swapMode && (
+              <div className="game-actions">
+                <p className="swap-hint">Select tiles to swap, then confirm:</p>
+                <button className="btn-primary" onClick={handleSwapSubmit} disabled={swapSelection.length === 0}>
+                  Swap {swapSelection.length > 0 ? `(${swapSelection.length})` : ''}
+                </button>
+                <button className="btn-ghost" onClick={() => { setSwapMode(false); setSwapSelection([]); }}>Cancel</button>
+              </div>
+            )}
+
+            {!myTurn && gameState && (
+              <div className="waiting-msg">Waiting for {currentTurnPlayer?.username}…</div>
+            )}
+
+            {!gameState && (
+              <div className="waiting-msg">
+                {room?.players.length < 2
+                  ? 'Waiting for more players…'
+                  : room?.hostId === user.id
+                    ? <button className="btn-primary" onClick={() => socket.emit('start_game', { roomId })}>Start Game</button>
+                    : 'Waiting for host to start…'
+                }
+              </div>
+            )}
+
+            <button className="btn-ghost leave-btn" onClick={handleLeave}>Leave Room</button>
+          </aside>
+        )}
+
+        {/* ── Board (native scroll) ── */}
+        <main className="board-viewport">
+          <div className="board-scroll" ref={scrollRef}>
+            <div className="board-world" style={{ width: WORLD, height: WORLD }}>
+
+              {myTurn && selectedHandIdx !== null && [...validDropCells].map(k => {
+                const [x, y] = k.split(',').map(Number);
+                if (displayBoard[k]) return null;
+                return (
+                  <div
+                    key={`drop-${k}`}
+                    className="drop-target"
+                    style={{
+                      left: ORIGIN + x * CELL,
+                      top:  ORIGIN + y * CELL,
+                      width: CELL,
+                      height: CELL,
+                      position: 'absolute'
+                    }}
+                    onClick={() => handleCellClick(x, y)}
+                  />
+                );
+              })}
+
+              {staged.map(({ x, y, tile }) => (
+                <div
+                  key={`staged-${x},${y}`}
+                  className="board-cell-wrapper staged-cell"
+                  style={{ left: ORIGIN + x * CELL, top: ORIGIN + y * CELL }}
+                  onClick={() => handleCellClick(x, y)}
+                  title="Tap to remove"
+                >
+                  <KwerzoTile shape={tile.shape} color={tile.color} size={CELL} staged />
+                </div>
+              ))}
+
+              {Object.entries(displayBoard).map(([k, tile]) => {
+                if (tile._staged) return null;
+                const [x, y] = k.split(',').map(Number);
+                return (
+                  <div
+                    key={`tile-${k}`}
+                    className="board-cell-wrapper"
+                    style={{ left: ORIGIN + x * CELL, top: ORIGIN + y * CELL }}
+                  >
+                    <KwerzoTile shape={tile.shape} color={tile.color} size={CELL} />
+                  </div>
+                );
+              })}
+
+            </div>
+          </div>
+        </main>
 
       </div>{/* end game-body */}
 
-      {/* ── Mobile controls (actions + status) ── */}
+      {/* ── Mobile controls ── */}
       {isMobile && (
         <div className="mobile-controls">
           {(lastMsg || moveError) && (
@@ -400,15 +380,36 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
       )}
 
       {/* ── Hand ── */}
-      <div className="hand-bar">
-        <div className="hand-label">Your tiles:</div>
-        <div className="hand-tiles">
+      <div style={{
+        flexShrink: 0,
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '10px 14px',
+        background: 'var(--surface)',
+        borderTop: '1px solid var(--border)',
+      }}>
+        <span style={{ flexShrink: 0, fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+          Your tiles:
+        </span>
+        <div style={{
+          flex: 1,
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'row',
+          flexWrap: 'nowrap',
+          gap: '8px',
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+        }}>
           {myHand.map((tile, i) => {
             const isUsedInStage = staged.some(s => s.handIdx === i);
             const isSwapSelected = swapSelection.includes(i);
             return (
               <div
                 key={i}
+                style={{ flexShrink: 0 }}
                 className={`hand-slot ${isUsedInStage ? 'used' : ''} ${isSwapSelected ? 'swap-selected' : ''}`}
                 onClick={() => {
                   if (swapMode) {
@@ -433,6 +434,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
           })}
         </div>
       </div>
+
     </div>
   );
 }
