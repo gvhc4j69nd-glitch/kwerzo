@@ -358,6 +358,7 @@
   overflow: hidden;
   position: relative;
   cursor: grab;
+  touch-action: none;
   background:
     radial-gradient(ellipse at 20% 20%, rgba(124,58,237,0.06) 0%, transparent 50%),
     repeating-linear-gradient(0deg, transparent, transparent 63px, rgba(255,255,255,0.03) 63px, rgba(255,255,255,0.03) 64px),
@@ -442,7 +443,15 @@
 }
 
 .hand-label { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
-.hand-tiles { display: flex; gap: 8px; flex-wrap: wrap; }
+.hand-tiles {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.hand-tiles::-webkit-scrollbar { display: none; }
 
 .hand-slot {
   border-radius: 8px;
@@ -643,6 +652,16 @@
   bottom: auto;
   right: auto;
   flex-shrink: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 8px 12px;
+}
+.hand-bar-mobile .hand-tiles {
+  width: 100%;
+}
+.game-page-mobile {
+  overflow: hidden;
 }
 
 /* Prevent iOS text selection / callout on board */

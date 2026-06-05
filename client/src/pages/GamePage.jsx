@@ -389,6 +389,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
       <main
         className="board-viewport"
         ref={boardRef}
+        style={{ touchAction: 'none' }}
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
