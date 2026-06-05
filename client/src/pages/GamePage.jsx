@@ -15,7 +15,16 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
   const [lastMsg,         setLastMsg]         = useState('');
   const [moveError,       setMoveError]       = useState('');
   const [gameOver,        setGameOver]        = useState(null);
+  const [isMobile,        setIsMobile]        = useState(
+    () => navigator.maxTouchPoints > 0 || window.innerWidth < 1024
+  );
   const transformRef = useRef(null);
+
+  useEffect(() => {
+    const update = () => setIsMobile(navigator.maxTouchPoints > 0 || window.innerWidth < 1024);
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
 
   const myTurn   = gameState && gameState.players[gameState.currentPlayerIndex]?.id === user.id;
   const myPlayer = gameState?.players.find(p => p.id === user.id);
@@ -174,8 +183,8 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
       {/* ════ MAIN BODY: sidebar + board ════ */}
       <div className="game-body">
 
-        {/* ── Desktop sidebar (hidden on mobile via CSS) ── */}
-        <aside className="game-sidebar">
+        {/* ── Desktop sidebar — only rendered when not mobile ── */}
+        {!isMobile && <aside className="game-sidebar">
           <div className="sidebar-logo"><span className="logo-k">K</span>wer<span className="logo-z">z</span>o</div>
 
           <div className="players-panel">
@@ -223,7 +232,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
             </>}
             <button className="btn-ghost" style={{ marginTop: 4 }} onClick={handleLeave}>Leave</button>
           </div>
-        </aside>
+        </aside>}
 
         {/* ── Board ── */}
         <main className="board-viewport">

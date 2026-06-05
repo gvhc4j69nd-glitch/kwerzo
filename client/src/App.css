@@ -423,7 +423,7 @@
 /* ══════════════════════════════════════════════════════════
    MOBILE OVERRIDES  ≤ 768px
    ══════════════════════════════════════════════════════════ */
-@media (max-width: 768px) {
+@media (max-width: 1023px) {
 
   /* Hide desktop sidebar */
   .game-sidebar { display: none; }
