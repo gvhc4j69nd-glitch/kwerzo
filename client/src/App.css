@@ -528,6 +528,31 @@
 /* Responsive */
 @media (max-width: 768px) {
   .game-sidebar { display: none; }
+  .hand-bar {
+    position: static;
+    left: auto;
+    bottom: auto;
+    right: auto;
+    flex-shrink: 0;
+    padding: 8px 12px;
+    gap: 10px;
+  }
+  .hand-tiles {
+    flex: 1;
+    min-width: 0;
+    flex-wrap: nowrap !important;
+  }
+  .hand-slot { flex-shrink: 0; }
+  .game-page {
+    flex-direction: column;
+    overflow: hidden;
+    touch-action: none;
+    overscroll-behavior: none;
+  }
+  .board-viewport {
+    flex: 1;
+    min-height: 0;
+  }
 }
 
 /* ── Mobile game layout ── */

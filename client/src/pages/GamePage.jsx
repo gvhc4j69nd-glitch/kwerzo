@@ -105,6 +105,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
     let startX = 0, startY = 0;
 
     function onTouchStart(e) {
+      e.preventDefault();
       if (e.touches.length === 1) {
         startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
@@ -163,7 +164,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, onLeave })
       lastTouchDist.current = null;
     }
 
-    el.addEventListener('touchstart', onTouchStart, { passive: true });
+    el.addEventListener('touchstart', onTouchStart, { passive: false });
     el.addEventListener('touchmove', onTouchMove, { passive: false });
     el.addEventListener('touchend', onTouchEnd, { passive: true });
     return () => {
