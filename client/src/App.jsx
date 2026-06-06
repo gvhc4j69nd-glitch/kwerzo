@@ -18,7 +18,22 @@ export default function App() {
     const s = getSocket(token);
     s.connect();
     setSocket(s);
-    return () => {};
+
+    // Restore active game session after (re)connect
+    s.on('session_restored', ({ roomId, room, state }) => {
+      setActiveRoom({ roomId, room, initialState: state });
+    });
+
+    // Game expired due to 72h inactivity
+    s.on('room_expired', ({ roomId }) => {
+      setActiveRoom(prev => (prev?.roomId === roomId ? null : prev));
+      alert('Your game ended due to 72 hours of inactivity.');
+    });
+
+    return () => {
+      s.off('session_restored');
+      s.off('room_expired');
+    };
   }, [token]);
 
   function handleAuth(userData, tok) {
@@ -57,6 +72,7 @@ export default function App() {
         user={user}
         roomId={activeRoom.roomId}
         initialRoom={activeRoom.room}
+        initialState={activeRoom.initialState || null}
         onLeave={handleLeaveRoom}
       />
     );

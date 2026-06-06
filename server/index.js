@@ -137,6 +137,25 @@ io.on('connection', (socket) => {
   const { userId, username } = socket.user;
   console.log(`[kwerzo] ${username} connected`);
 
+  // ── Restore any active game session ──────────────────────────────────────
+  const activeRoom = roomManager.findActiveRoomForUser(userId);
+  if (activeRoom) {
+    socket.join(activeRoom.id);
+    socketRooms.set(socket.id, activeRoom.id);
+    const state = roomManager.getRoomState(activeRoom, userId);
+    socket.emit('session_restored', {
+      roomId: activeRoom.id,
+      room: {
+        id:      activeRoom.id,
+        hostId:  activeRoom.hostId,
+        players: activeRoom.players,
+        status:  activeRoom.status,
+      },
+      state,
+    });
+    console.log(`[kwerzo] ${username} restored to room ${activeRoom.id}`);
+  }
+
   socket.on('list_rooms', () => {
     socket.emit('rooms_list', roomManager.listOpenRooms());
   });
@@ -249,6 +268,19 @@ io.on('connection', (socket) => {
 
 async function start() {
   await initDb();
+
+  // Load persisted rooms back into memory
+  await roomManager.loadPersistedRooms();
+
+  // Purge rooms inactive > 72 h every hour
+  const HOUR = 60 * 60 * 1000;
+  setInterval(async () => {
+    const purged = await roomManager.purgeInactiveRooms();
+    for (const roomId of purged) {
+      io.to(roomId).emit('room_expired', { roomId, reason: '72h inactivity' });
+    }
+  }, HOUR);
+
   server.listen(PORT, () => console.log(`[kwerzo] Server running on port ${PORT}`));
 }
 

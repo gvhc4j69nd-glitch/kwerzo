@@ -5,9 +5,9 @@ import KwerzoTile from '../components/KwerzoTile';
 const CELL = 56;
 const PAD  = 3;   // empty cells of padding around tiles
 
-export default function GamePage({ socket, user, roomId, initialRoom, onLeave }) {
+export default function GamePage({ socket, user, roomId, initialRoom, initialState, onLeave }) {
   const [room,            setRoom]            = useState(initialRoom);
-  const [gameState,       setGameState]       = useState(null);
+  const [gameState,       setGameState]       = useState(initialState || null);
   const [staged,          setStaged]          = useState([]);
   const [selectedHandIdx, setSelectedHandIdx] = useState(null);
   const [swapMode,        setSwapMode]        = useState(false);

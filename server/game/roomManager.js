@@ -2,6 +2,7 @@
 
 const { createInitialState, applyMove, applySwap, applyPass, getStateForPlayer } = require('./kwerzoEngine');
 const { getBotMove } = require('./botAI');
+const roomStore = require('../db/roomStore');
 
 const rooms = new Map();
 
@@ -15,21 +16,46 @@ const BOT_NAMES = {
   hard:   ['John', 'Titan', 'Apex', 'Zenith', 'Oracle'],
 };
 
+// ── Persist helper — fire-and-forget so game logic stays synchronous ──────────
+function persist(room) {
+  roomStore.saveRoom(room).catch(err => console.error('[roomManager] persist error:', err.message));
+}
+function remove(roomId) {
+  roomStore.deleteRoom(roomId).catch(err => console.error('[roomManager] remove error:', err.message));
+}
+
+// ── Hydrate rooms from DB at startup ─────────────────────────────────────────
+async function loadPersistedRooms() {
+  const rows = await roomStore.loadAllRooms();
+  for (const row of rows) {
+    rooms.set(row.id, row);
+  }
+  console.log(`[roomManager] Loaded ${rows.length} persisted room(s)`);
+}
+
+// ── Purge rooms inactive > 72 h (returns purged IDs) ─────────────────────────
+async function purgeInactiveRooms() {
+  const purgedIds = await roomStore.purgeInactiveRooms();
+  for (const id of purgedIds) rooms.delete(id);
+  return purgedIds;
+}
+
+// ── CRUD ─────────────────────────────────────────────────────────────────────
+
 function addBot(roomId, difficulty) {
   const room = rooms.get(roomId);
   if (!room) return { error: 'Room not found' };
   if (room.status !== 'waiting') return { error: 'Game already in progress' };
   if (room.players.length >= 4) return { error: 'Room is full (max 4 players)' };
 
-  const names = BOT_NAMES[difficulty] || BOT_NAMES.medium;
+  const names    = BOT_NAMES[difficulty] || BOT_NAMES.medium;
   const usedNames = room.players.map(p => p.username);
   const available = names.filter(n => !usedNames.includes(`${n} (Bot)`));
-  const name = available.length > 0
-    ? `${available[0]} (Bot)`
-    : `Bot ${room.players.length + 1}`;
+  const name = available.length > 0 ? `${available[0]} (Bot)` : `Bot ${room.players.length + 1}`;
 
   const botId = `bot_${difficulty}_${generateId()}`;
   room.players.push({ id: botId, username: name, isBot: true, difficulty });
+  persist(room);
   return { room };
 }
 
@@ -38,12 +64,13 @@ function createRoom(hostId, hostUsername) {
   const room = {
     id: roomId,
     hostId,
-    players: [{ id: hostId, username: hostUsername }],
-    status: 'waiting',
+    players:   [{ id: hostId, username: hostUsername }],
+    status:    'waiting',
     gameState: null,
-    createdAt: Date.now()
+    createdAt: Date.now(),
   };
   rooms.set(roomId, room);
+  persist(room);
   return room;
 }
 
@@ -55,6 +82,7 @@ function joinRoom(roomId, userId, username) {
   if (room.players.find(p => p.id === userId)) return { error: 'Already in room' };
 
   room.players.push({ id: userId, username });
+  persist(room);
   return { room };
 }
 
@@ -66,6 +94,7 @@ function leaveRoom(roomId, userId) {
 
   if (room.players.length === 0) {
     rooms.delete(roomId);
+    remove(roomId);
     return { deleted: true };
   }
 
@@ -74,21 +103,18 @@ function leaveRoom(roomId, userId) {
   }
 
   if (room.status === 'playing' && room.gameState) {
-    // Remove player from game state
-    room.gameState.players = room.gameState.players.filter(p => p.id !== userId);
-    room.gameState.turnOrder = room.gameState.turnOrder.filter(id => id !== userId);
+    room.gameState.players   = room.gameState.players.filter(p => p.id !== userId);
+    room.gameState.turnOrder = (room.gameState.turnOrder || []).filter(id => id !== userId);
     if (room.gameState.players.length < 2) {
-      room.status = 'finished';
-      if (room.gameState.players.length === 1) {
-        room.gameState.status = 'finished';
-      }
+      room.status            = 'finished';
+      room.gameState.status  = 'finished';
     }
-    // Fix currentPlayerIndex if out of bounds
     if (room.gameState.currentPlayerIndex >= room.gameState.players.length) {
       room.gameState.currentPlayerIndex = 0;
     }
   }
 
+  persist(room);
   return { room };
 }
 
@@ -99,16 +125,18 @@ function startGame(roomId, userId) {
   if (room.players.length < 2) return { error: 'Need at least 2 players to start' };
   if (room.status !== 'waiting') return { error: 'Game already started' };
 
-  const playerIds = room.players.map(p => p.id);
-  room.gameState = createInitialState(playerIds);
-  room.status = 'playing';
+  const playerIds   = room.players.map(p => p.id);
+  room.gameState    = createInitialState(playerIds);
+  room.status       = 'playing';
+  persist(room);
   return { room };
 }
 
-// Returns bot player info if the current turn belongs to a bot
+// ── Bot helpers ───────────────────────────────────────────────────────────────
+
 function getCurrentBot(room) {
   if (!room.gameState || room.status !== 'playing') return null;
-  const idx = room.gameState.currentPlayerIndex;
+  const idx    = room.gameState.currentPlayerIndex;
   const player = room.players[idx];
   if (!player || !player.isBot) return null;
   const gsPlayer = room.gameState.players[idx];
@@ -128,22 +156,12 @@ function executeBotMove(roomId) {
   let result;
   if (decision.action === 'place') {
     result = applyMove(room.gameState, bot.id, decision.placements);
-    if (result.error) {
-      // Fallback to pass on unexpected error
-      result = applyPass(room.gameState, bot.id);
-      result.action = 'pass';
-    } else {
-      result.action = 'place';
-    }
+    if (result.error) { result = applyPass(room.gameState, bot.id); result.action = 'pass'; }
+    else               result.action = 'place';
   } else if (decision.action === 'swap') {
     result = applySwap(room.gameState, bot.id, decision.tiles);
-    if (result.error) {
-      result = applyPass(room.gameState, bot.id);
-      result.action = 'pass';
-    } else {
-      result.action = 'swap';
-      result.count  = decision.tiles.length;
-    }
+    if (result.error) { result = applyPass(room.gameState, bot.id); result.action = 'pass'; }
+    else               { result.action = 'swap'; result.count = decision.tiles.length; }
   } else {
     result = applyPass(room.gameState, bot.id);
     result.action = 'pass';
@@ -153,9 +171,12 @@ function executeBotMove(roomId) {
 
   room.gameState = result.newState;
   if (room.gameState.status === 'finished') room.status = 'finished';
+  persist(room);
 
   return { result, room, bot };
 }
+
+// ── Game moves ────────────────────────────────────────────────────────────────
 
 function handleMove(roomId, userId, placements) {
   const room = rooms.get(roomId);
@@ -167,7 +188,7 @@ function handleMove(roomId, userId, placements) {
 
   room.gameState = result.newState;
   if (room.gameState.status === 'finished') room.status = 'finished';
-
+  persist(room);
   return { result, room };
 }
 
@@ -180,6 +201,7 @@ function handleSwap(roomId, userId, tiles) {
   if (result.error) return { error: result.error };
 
   room.gameState = result.newState;
+  persist(room);
   return { result, room };
 }
 
@@ -193,22 +215,33 @@ function handlePass(roomId, userId) {
 
   room.gameState = result.newState;
   if (room.gameState.status === 'finished') room.status = 'finished';
+  persist(room);
   return { result, room };
 }
 
-function getRoom(roomId) {
-  return rooms.get(roomId);
+// ── Queries ───────────────────────────────────────────────────────────────────
+
+function getRoom(roomId) { return rooms.get(roomId); }
+
+/** Find any active (playing) room that contains this userId */
+function findActiveRoomForUser(userId) {
+  for (const room of rooms.values()) {
+    if (room.status === 'playing' && room.players.some(p => p.id === userId && !p.isBot)) {
+      return room;
+    }
+  }
+  return null;
 }
 
 function listOpenRooms() {
   return Array.from(rooms.values())
     .filter(r => r.status === 'waiting')
     .map(r => ({
-      id: r.id,
-      hostId: r.hostId,
+      id:          r.id,
+      hostId:      r.hostId,
       playerCount: r.players.length,
-      players: r.players.map(p => p.username),
-      createdAt: r.createdAt
+      players:     r.players.map(p => p.username),
+      createdAt:   r.createdAt,
     }));
 }
 
@@ -218,6 +251,8 @@ function getRoomState(room, userId) {
 }
 
 module.exports = {
+  loadPersistedRooms,
+  purgeInactiveRooms,
   createRoom,
   joinRoom,
   leaveRoom,
@@ -228,7 +263,8 @@ module.exports = {
   handlePass,
   getCurrentBot,
   executeBotMove,
+  findActiveRoomForUser,
   getRoom,
   listOpenRooms,
-  getRoomState
+  getRoomState,
 };
