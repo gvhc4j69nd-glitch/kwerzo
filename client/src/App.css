@@ -169,6 +169,9 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  padding-left:   env(safe-area-inset-left);
+  padding-right:  env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .lobby-header {
@@ -335,6 +338,10 @@
   height: 100dvh;
   background: var(--bg);
   overflow: hidden;
+  /* Honour iPhone safe area on all sides */
+  padding-left:   env(safe-area-inset-left);
+  padding-right:  env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* ── Desktop mobile header: hidden ── */
