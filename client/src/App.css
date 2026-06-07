@@ -494,32 +494,34 @@
   /* Show mobile chrome */
   .mob-header {
     display: flex;
+    flex-direction: column;
     flex-shrink: 0;
-    align-items: center;
-    gap: 8px;
-    padding: 0 12px;
-    height: 48px;
-    min-height: 48px;
+    gap: 6px;
+    padding: 8px 12px;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     z-index: 10;
+  }
+  .mob-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .mob-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
   .mob-logo {
     font-size: 18px;
     font-weight: 900;
     letter-spacing: -0.5px;
-    flex-shrink: 0;
   }
   .mob-scores {
-    flex: 1;
-    min-width: 0;
     display: flex;
-    align-items: center;
-    gap: 8px;
-    overflow-x: auto;
-    scrollbar-width: none;
+    flex-wrap: wrap;
+    gap: 6px;
   }
-  .mob-scores::-webkit-scrollbar { display: none; }
   .mob-score-chip {
     white-space: nowrap;
     font-size: 12px;
@@ -528,7 +530,6 @@
     border-radius: 20px;
     padding: 3px 8px;
     border: 1px solid var(--border);
-    flex-shrink: 0;
   }
   .mob-score-chip.active {
     background: rgba(245,158,11,0.15);
@@ -536,7 +537,7 @@
     color: var(--accent);
     font-weight: 700;
   }
-  .mob-bag { font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
+  .mob-bag { font-size: 12px; color: var(--text-muted); }
   .mob-leave-btn {
     flex-shrink: 0;
     width: 34px; height: 34px;

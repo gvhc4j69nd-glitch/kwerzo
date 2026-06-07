@@ -227,7 +227,13 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
 
       {/* ════ MOBILE HEADER (hidden on desktop via CSS) ════ */}
       <header className="mob-header">
-        <span className="mob-logo"><span className="logo-k">K</span>wer<span className="logo-z">z</span>o</span>
+        <div className="mob-header-top">
+          <span className="mob-logo"><span className="logo-k">K</span>wer<span className="logo-z">z</span>o</span>
+          <div className="mob-header-right">
+            {gameState && <span className="mob-bag">🎒 {gameState.bag} left</span>}
+            <button className="mob-leave-btn" onClick={handleLeave}>✕</button>
+          </div>
+        </div>
         <div className="mob-scores">
           {room?.players.map(rp => {
             const gp     = gameState?.players.find(p => p.id === rp.id);
@@ -238,9 +244,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
               </span>
             );
           })}
-          {gameState && <span className="mob-bag">🎒{gameState.bag}</span>}
         </div>
-        <button className="mob-leave-btn" onClick={handleLeave}>✕</button>
       </header>
 
       {/* ════ MAIN BODY: sidebar + board (hidden on mobile pre-game) ════ */}
