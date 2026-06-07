@@ -216,8 +216,8 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
         <button className="mob-leave-btn" onClick={handleLeave}>✕</button>
       </header>
 
-      {/* ════ MAIN BODY: sidebar + board ════ */}
-      <div className="game-body">
+      {/* ════ MAIN BODY: sidebar + board (hidden on mobile pre-game) ════ */}
+      <div className={`game-body${!gameState && isMobile ? ' mob-hidden' : ''}`}>
 
         {/* ── Desktop sidebar — only rendered when not mobile ── */}
         {!isMobile && <aside className="game-sidebar">
@@ -363,38 +363,88 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
 
       </div>{/* end game-body */}
 
-      {/* ════ MOBILE STATUS + ACTIONS (hidden on desktop via CSS) ════ */}
-      <div className="mob-status">
-        {moveError && <span className="mob-err">{moveError}</span>}
-        {!moveError && lastMsg && <span className="mob-ok">{lastMsg}</span>}
-        {!moveError && !lastMsg && gameState && !myTurn && (
-          <span className="mob-wait">Waiting for {currentTurnPlayer?.username}…</span>
-        )}
-        {!gameState && (
-          isHost ? (
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-              <select
-                className="bot-diff-select"
-                value={botDifficulty}
-                onChange={e => setBotDifficulty(e.target.value)}
-              >
-                <option value="easy">Easy</option>
-                <option value="medium">Medium</option>
-                <option value="hard">Hard</option>
-              </select>
-              <button className="btn-secondary btn-sm"
-                disabled={room?.players.length >= 4}
-                onClick={() => socket.emit('add_bot', { roomId, difficulty: botDifficulty })}
-              >+ Bot</button>
-              {room?.players.length >= 2 && (
-                <button className="btn-primary btn-sm" onClick={() => socket.emit('start_game', { roomId })}>Start</button>
+      {/* ════ MOBILE PRE-GAME PANEL (full screen, replaces board before game starts) ════ */}
+      {!gameState && (
+        <div className="mob-pregame">
+          <h2 className="mob-pregame-title">Room <span className="mob-pregame-roomid">{roomId}</span></h2>
+
+          {/* Player list */}
+          <div className="mob-pregame-players">
+            {room?.players.map(p => (
+              <div key={p.id} className="mob-pregame-player">
+                <span className="mob-pregame-pname">
+                  {p.username}{String(p.id) === String(user?.id) ? ' (you)' : ''}
+                </span>
+                {p.isBot && <span className={`bot-badge ${p.difficulty}`}>{p.difficulty}</span>}
+              </div>
+            ))}
+            {(room?.players.length ?? 0) < 4 && (
+              <div className="mob-pregame-player mob-pregame-empty">
+                Waiting for player…
+              </div>
+            )}
+          </div>
+
+          {/* Host controls */}
+          {isHost && (
+            <>
+              <div className="mob-pregame-section-label">Add a bot opponent</div>
+              <div className="add-bot-row" style={{ marginBottom: 8 }}>
+                <select
+                  className="bot-diff-select"
+                  value={botDifficulty}
+                  onChange={e => setBotDifficulty(e.target.value)}
+                  style={{ flex: 1 }}
+                >
+                  <option value="easy">Easy Bot (Joe)</option>
+                  <option value="medium">Medium Bot</option>
+                  <option value="hard">Hard Bot (John)</option>
+                </select>
+                <button
+                  className="btn-secondary"
+                  disabled={room?.players.length >= 4}
+                  onClick={() => socket.emit('add_bot', { roomId, difficulty: botDifficulty })}
+                >+ Add Bot</button>
+              </div>
+
+              {room?.players.length < 2 ? (
+                <div className="mob-wait" style={{ textAlign: 'center', padding: '12px 0' }}>
+                  Need at least 2 players to start
+                </div>
+              ) : (
+                <button
+                  className="btn-primary"
+                  style={{ width: '100%', padding: '14px', fontSize: 16, marginTop: 4 }}
+                  onClick={() => socket.emit('start_game', { roomId })}
+                >
+                  Start Game →
+                </button>
               )}
+            </>
+          )}
+
+          {!isHost && (
+            <div className="mob-wait" style={{ textAlign: 'center', padding: '16px 0', fontSize: 14 }}>
+              Waiting for the host to start the game…
             </div>
-          ) : (
-            <span className="mob-wait">Waiting for host…</span>
-          )
-        )}
-      </div>
+          )}
+
+          <button className="btn-ghost" style={{ width: '100%', marginTop: 12 }} onClick={handleLeave}>
+            Leave Room
+          </button>
+        </div>
+      )}
+
+      {/* ════ MOBILE STATUS + ACTIONS (hidden on desktop, shown during game) ════ */}
+      {gameState && (
+        <div className="mob-status">
+          {moveError && <span className="mob-err">{moveError}</span>}
+          {!moveError && lastMsg && <span className="mob-ok">{lastMsg}</span>}
+          {!moveError && !lastMsg && !myTurn && (
+            <span className="mob-wait">Waiting for {currentTurnPlayer?.username}…</span>
+          )}
+        </div>
+      )}
 
       {myTurn && (
         <div className="mob-actions">
