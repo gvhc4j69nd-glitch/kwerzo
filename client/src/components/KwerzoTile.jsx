@@ -2,7 +2,7 @@ import React from 'react';
 
 const COLOR_VALUES = {
   ruby:     '#E53935',
-  amber:    '#FB8C00',
+  amber:    '#F5F5F5',
   jade:     '#43A047',
   sapphire: '#1E88E5',
   amethyst: '#8E24AA',
