@@ -19,7 +19,16 @@ function authMiddleware(req, res, next) {
 }
 
 router.get('/', authMiddleware, async (req, res) => {
-  if (db.devMode) return res.json({ top: [], me: null });
+  if (db.devMode) {
+    // Dev mode: return in-memory users with zeroed stats so the table isn't blank
+    const { memDb } = require('../db/schema');
+    const top = memDb.users.map((u, i) => ({
+      username: u.username, wins: 0, losses: 0,
+      games_played: 0, total_score: 0, elo_rating: 1000, rank: i + 1
+    }));
+    const me = top.find(r => r.username === req.user.username) || null;
+    return res.json({ top, me });
+  }
   try {
     // All users who have a leaderboard row, ordered by elo then score
     const result = await db.pool.query(`

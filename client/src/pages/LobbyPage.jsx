@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
   const [rooms, setRooms] = useState([]);
   const [leaderboard, setLeaderboard] = useState({ top: [], me: null });
+  const [lbError, setLbError] = useState(null);
   const [tab, setTab] = useState('rooms');
   const [creating, setCreating] = useState(false);
 
@@ -24,7 +25,10 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
 
   useEffect(() => {
     if (tab === 'leaderboard') {
-      api.leaderboard().then(setLeaderboard).catch(() => {});
+      setLbError(null);
+      api.leaderboard()
+        .then(data => { setLeaderboard(data); setLbError(null); })
+        .catch(err => setLbError(err.message || 'Failed to load leaderboard'));
     }
   }, [tab]);
 
@@ -98,6 +102,9 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
 
       {tab === 'leaderboard' && (
         <div className="lobby-content">
+          {lbError && (
+            <div className="error-state">⚠️ {lbError}</div>
+          )}
           {leaderboard.me && (
             <div className="my-stats">
               <h3>Your Stats</h3>
