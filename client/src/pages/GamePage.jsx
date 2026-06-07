@@ -301,7 +301,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
             centerOnInit
             limitToBounds={false}
             doubleClick={{ disabled: true }}
-            panning={{ velocityDisabled: false }}
+            panning={{ velocityDisabled: false, excluded: ['drop-target', 'staged-cell', 'board-ctrl-btn', 'hand-slot', 'btn-primary', 'btn-secondary', 'btn-ghost'] }}
           >
             {({ zoomIn, zoomOut }) => (
               <>
@@ -320,6 +320,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
                           className="drop-target"
                           style={{ position: 'absolute', left: (x - minX) * CELL, top: (y - minY) * CELL, width: CELL, height: CELL }}
                           onClick={() => handleCellClick(x, y)}
+                          onTouchEnd={e => { e.stopPropagation(); handleCellClick(x, y); }}
                         />
                       );
                     })}
@@ -330,6 +331,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
                         className="board-cell-wrapper staged-cell"
                         style={{ left: (x - minX) * CELL, top: (y - minY) * CELL }}
                         onClick={() => handleCellClick(x, y)}
+                        onTouchEnd={e => { e.stopPropagation(); handleCellClick(x, y); }}
                       >
                         <KwerzoTile shape={tile.shape} color={tile.color} size={CELL} staged />
                       </div>
@@ -485,6 +487,16 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
               onDragEnd={onTrayDragEnd}
               onDragOver={e => e.preventDefault()}
               onClick={() => {
+                if (swapMode) {
+                  setSwapSelection(prev => prev.includes(origIdx) ? prev.filter(x => x !== origIdx) : [...prev, origIdx]);
+                  return;
+                }
+                if (!myTurn || used) return;
+                setSelectedHandIdx(prev => prev === origIdx ? null : origIdx);
+                setMoveError('');
+              }}
+              onTouchEnd={e => {
+                e.preventDefault();
                 if (swapMode) {
                   setSwapSelection(prev => prev.includes(origIdx) ? prev.filter(x => x !== origIdx) : [...prev, origIdx]);
                   return;
