@@ -24,7 +24,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
   const [showTurnOverlay, setShowTurnOverlay] = useState(false);
   const prevMyTurn = useRef(false);
   const transformRef = useRef(null);
-  const touchDragRef = useRef({ active: false, startIdx: null });
+  const trayRef = useRef(null);
 
   useEffect(() => {
     const update = () => setIsMobile(navigator.maxTouchPoints > 0 || window.innerWidth < 1024);
@@ -56,6 +56,60 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
   useLayoutEffect(() => {
     if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
   });
+
+  // Native touch-drag reorder for iOS Safari.
+  // React's onTouchMove is passive in React 17+ so e.preventDefault() is a no-op there.
+  // We register a non-passive native listener directly on the tray element instead.
+  useEffect(() => {
+    const tray = trayRef.current;
+    if (!tray) return;
+
+    let dragOrigIdx = null;
+
+    function handleTouchStart(e) {
+      const slot = e.target.closest('[data-origidx]');
+      if (!slot) return;
+      dragOrigIdx = parseInt(slot.dataset.origidx);
+      setDragTrayIdx(dragOrigIdx);
+    }
+
+    function handleTouchMove(e) {
+      if (dragOrigIdx === null) return;
+      e.preventDefault(); // stop page scroll while reordering — works because passive: false
+      const touch = e.touches[0];
+      const el = document.elementFromPoint(touch.clientX, touch.clientY);
+      const slot = el?.closest('[data-origidx]');
+      if (!slot) return;
+      const toIdx = parseInt(slot.dataset.origidx);
+      if (isNaN(toIdx) || toIdx === dragOrigIdx) return;
+      // Swap in tray order
+      setTrayOrder(prev => {
+        const next = [...prev];
+        const from = next.indexOf(dragOrigIdx);
+        const to   = next.indexOf(toIdx);
+        if (from === -1 || to === -1) return prev;
+        next.splice(from, 1);
+        next.splice(to, 0, dragOrigIdx);
+        return next;
+      });
+      dragOrigIdx = toIdx; // track so next move compares from new position
+    }
+
+    function handleTouchEnd() {
+      dragOrigIdx = null;
+      setDragTrayIdx(null);
+    }
+
+    tray.addEventListener('touchstart', handleTouchStart, { passive: true });
+    tray.addEventListener('touchmove',  handleTouchMove,  { passive: false });
+    tray.addEventListener('touchend',   handleTouchEnd,   { passive: true });
+
+    return () => {
+      tray.removeEventListener('touchstart', handleTouchStart);
+      tray.removeEventListener('touchmove',  handleTouchMove);
+      tray.removeEventListener('touchend',   handleTouchEnd);
+    };
+  }, []); // setDragTrayIdx / setTrayOrder are stable state setters
 
   // hostId can be a number or string depending on whether the room was loaded
   // from the DB (TEXT column) or created fresh in memory. Normalise to string.
@@ -520,7 +574,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       )}
 
       {/* ════ TILE TRAY — always full width, single row ════ */}
-      <div className="tile-tray">
+      <div className="tile-tray" ref={trayRef}>
         {myHand.length === 0 && gameState && (
           <span className="tray-empty">No tiles</span>
         )}
@@ -541,33 +595,16 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
               onDragEnter={() => onTrayDragEnter(origIdx)}
               onDragEnd={onTrayDragEnd}
               onDragOver={e => e.preventDefault()}
-              onTouchStart={e => {
-                touchDragRef.current = { active: true, startIdx: origIdx };
-                setDragTrayIdx(origIdx);
-              }}
-              onTouchMove={e => {
-                if (!touchDragRef.current.active) return;
-                const touch = e.touches[0];
-                const el = document.elementFromPoint(touch.clientX, touch.clientY);
-                const slot = el?.closest('[data-origidx]');
-                if (!slot) return;
-                const toIdx = parseInt(slot.dataset.origidx);
-                if (isNaN(toIdx) || toIdx === touchDragRef.current.startIdx) return;
-                onTrayDragEnter(toIdx);
-                touchDragRef.current.startIdx = toIdx;
-              }}
-              onTouchEnd={() => {
-                touchDragRef.current = { active: false, startIdx: null };
-                onTrayDragEnd();
-              }}
               onClick={() => {
-                if (swapMode) {
+                // Swap-select only during your turn
+                if (swapMode && myTurn) {
                   setSwapSelection(prev => prev.includes(origIdx) ? prev.filter(x => x !== origIdx) : [...prev, origIdx]);
                   return;
                 }
-                if (!myTurn || used) return;
+                // Allow tile selection any time (for planning) but skip used slots
+                if (used) return;
                 setSelectedHandIdx(prev => prev === origIdx ? null : origIdx);
-                setMoveError('');
+                if (myTurn) setMoveError('');
               }}
             >
               <KwerzoTile shape={tile.shape} color={tile.color} size={trayTileSize} selected={isSelected} />
