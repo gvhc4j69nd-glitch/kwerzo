@@ -140,8 +140,8 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
           </p>
           <div className="shape-legend">
             {[
-              { sym: '☽', name: 'Moon', color: '#E53935' },
-              { sym: '⚡', name: 'Bolt', color: '#F5F5F5' },
+              { sym: '☽', name: 'Moon', color: '#F5F5F5' },
+              { sym: '⚡', name: 'Bolt', color: '#FB8C00' },
               { sym: '★', name: 'Star', color: '#43A047' },
               { sym: '🍃', name: 'Leaf', color: '#1E88E5' },
               { sym: '⬡', name: 'Hex', color: '#8E24AA' },
