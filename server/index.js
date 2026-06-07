@@ -224,6 +224,13 @@ io.on('connection', (socket) => {
     io.emit('rooms_list', roomManager.listOpenRooms());
   });
 
+  socket.on('delete_room', ({ roomId }) => {
+    const result = roomManager.deleteRoom(roomId, userId);
+    if (result.error) { socket.emit('error', result.error); return; }
+    io.to(roomId).emit('room_deleted', { roomId });
+    io.emit('rooms_list', roomManager.listOpenRooms());
+  });
+
   socket.on('start_game', ({ roomId }) => {
     const result = roomManager.startGame(roomId, userId);
     if (result.error) { socket.emit('error', result.error); return; }

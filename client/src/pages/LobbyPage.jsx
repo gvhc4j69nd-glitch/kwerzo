@@ -23,6 +23,14 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
     };
   }, [socket]);
 
+  function deleteRoom(roomId) {
+    socket.emit('delete_room', { roomId });
+  }
+
+  function enterRoom(roomId) {
+    socket.emit('join_room', { roomId });
+  }
+
   useEffect(() => {
     if (tab === 'leaderboard') {
       setLbError(null);
@@ -78,23 +86,40 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
             {rooms.length === 0 ? (
               <div className="empty-state">No open rooms — create one to get started!</div>
             ) : (
-              rooms.map(room => (
-                <div key={room.id} className="room-card">
-                  <div className="room-info">
-                    <span className="room-id">Room #{room.id}</span>
-                    <span className="room-players">
-                      {room.players.join(', ')} ({room.playerCount}/4)
-                    </span>
+              rooms.map(room => {
+                const isHost = String(room.hostId) === String(user.id);
+                const isIn   = room.players.includes(user.username);
+                return (
+                  <div key={room.id} className="room-card">
+                    <div className="room-info">
+                      <span className="room-id">
+                        Room #{room.id}
+                        {isHost && <span className="room-host-badge">host</span>}
+                      </span>
+                      <span className="room-players">
+                        {room.players.join(', ')} ({room.playerCount}/4)
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {isHost && (
+                        <button
+                          className="btn-ghost btn-danger"
+                          onClick={() => deleteRoom(room.id)}
+                        >
+                          Delete
+                        </button>
+                      )}
+                      <button
+                        className="btn-secondary"
+                        onClick={() => isIn ? enterRoom(room.id) : joinRoom(room.id)}
+                        disabled={!isIn && room.playerCount >= 4}
+                      >
+                        {isIn ? 'Enter' : 'Join'}
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    className="btn-secondary"
-                    onClick={() => joinRoom(room.id)}
-                    disabled={room.playerCount >= 4}
-                  >
-                    Join
-                  </button>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

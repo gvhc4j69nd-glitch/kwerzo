@@ -231,7 +231,23 @@
 }
 .room-card:hover { border-color: var(--primary); }
 
-.room-id { font-weight: 700; font-size: 16px; }
+.room-id { font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 6px; }
+.room-host-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: rgba(124,58,237,0.2);
+  color: var(--primary);
+  border: 1px solid rgba(124,58,237,0.4);
+}
+.btn-danger {
+  color: #ff6b6b !important;
+  border-color: rgba(229,57,53,0.4) !important;
+}
+.btn-danger:hover { background: rgba(229,57,53,0.12) !important; border-color: #ff6b6b !important; }
 .room-players { color: var(--text-muted); font-size: 13px; margin-top: 4px; display: block; }
 
 .error-state {

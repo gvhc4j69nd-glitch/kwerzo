@@ -79,7 +79,7 @@ function joinRoom(roomId, userId, username) {
   if (!room) return { error: 'Room not found' };
   if (room.status !== 'waiting') return { error: 'Game already in progress' };
   if (room.players.length >= 4) return { error: 'Room is full (max 4 players)' };
-  if (room.players.find(p => p.id === userId)) return { error: 'Already in room' };
+  if (room.players.find(p => p.id === userId)) return { room };
 
   room.players.push({ id: userId, username });
   persist(room);
@@ -233,6 +233,15 @@ function findActiveRoomForUser(userId) {
   return null;
 }
 
+function deleteRoom(roomId, userId) {
+  const room = rooms.get(roomId);
+  if (!room) return { error: 'Room not found' };
+  if (String(room.hostId) !== String(userId)) return { error: 'Only the host can delete the room' };
+  rooms.delete(roomId);
+  remove(roomId);
+  return { deleted: true, players: room.players.map(p => p.id) };
+}
+
 function listOpenRooms() {
   return Array.from(rooms.values())
     .filter(r => r.status === 'waiting')
@@ -265,6 +274,7 @@ module.exports = {
   executeBotMove,
   findActiveRoomForUser,
   getRoom,
+  deleteRoom,
   listOpenRooms,
   getRoomState,
 };

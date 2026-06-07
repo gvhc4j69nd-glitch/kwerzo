@@ -74,6 +74,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
     });
     socket.on('move_error', (err) => { setMoveError(err); setStaged([]); });
     socket.on('game_over',  (data) => setGameOver(data));
+    socket.on('room_deleted', ({ roomId: id }) => { if (id === roomId) onLeave(); });
     return () => {
       socket.off('room_update');
       socket.off('game_started');
@@ -81,6 +82,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       socket.off('move_made');
       socket.off('move_error');
       socket.off('game_over');
+      socket.off('room_deleted');
     };
   }, [socket]);
 
