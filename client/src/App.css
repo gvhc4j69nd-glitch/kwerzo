@@ -564,6 +564,13 @@
     gap: 8px;
   }
 
+  /* When pre-game panel is active, hide elements that compete for height */
+  .pregame-active .game-body   { display: none; }
+  .pregame-active .mob-status  { display: none; }
+  .pregame-active .mob-actions { display: none; }
+  .pregame-active .tile-tray   { display: none; }
+  .pregame-active .mob-pregame { flex: 1; }
+
   /* ── Mobile pre-game lobby panel ── */
   .mob-pregame {
     display: flex;

@@ -196,7 +196,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div className="game-page">
+    <div className={`game-page${!gameState ? ' pregame-active' : ''}`}>
 
       {/* ════ MOBILE HEADER (hidden on desktop via CSS) ════ */}
       <header className="mob-header">
