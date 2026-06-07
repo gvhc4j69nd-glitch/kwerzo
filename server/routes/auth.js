@@ -44,9 +44,9 @@ router.post('/register', async (req, res) => {
     );
     const user = result.rows[0];
     await db.pool.query(
-      'INSERT INTO kwerzo_leaderboard (user_id) VALUES ($1) ON CONFLICT DO NOTHING',
+      'INSERT INTO kwerzo_leaderboard (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING',
       [user.id]
-    );
+    ).catch(err => console.error('[auth] leaderboard row insert on register:', err.message));
     const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id: user.id, username: user.username, email: user.email } });
   } catch (err) {
@@ -83,11 +83,11 @@ router.post('/login', async (req, res) => {
     if (!user) return res.status(401).json({ error: 'Invalid username or password' });
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) return res.status(401).json({ error: 'Invalid username or password' });
-    // Ensure leaderboard row exists for existing users (idempotent)
+    // Ensure leaderboard row exists (logs error but does not block login)
     await db.pool.query(
-      'INSERT INTO kwerzo_leaderboard (user_id) VALUES ($1) ON CONFLICT DO NOTHING',
+      'INSERT INTO kwerzo_leaderboard (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING',
       [user.id]
-    ).catch(() => {});
+    ).catch(err => console.error('[auth] leaderboard row insert:', err.message));
     const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id: user.id, username: user.username, email: user.email } });
   } catch (err) {
