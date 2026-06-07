@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import KwerzoTile from '../components/KwerzoTile';
 
@@ -31,19 +31,28 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
 
   // Hard-lock iOS scroll. iOS Safari expands the scroll area for CSS transforms
   // even inside overflow:hidden containers, causing window.scrollX to drift when
-  // the board is panned. preventDefault on touchmove is the only reliable fix.
+  // the board is panned. Three layers of defence:
   useEffect(() => {
+    // 1. Prevent touch-driven scroll
     const preventScroll = (e) => {
-      // Allow natural scrolling only inside the tile tray and pregame panel
       if (e.target.closest('.tile-tray') || e.target.closest('.mob-pregame') || e.target.closest('.mob-scores')) return;
       if (e.cancelable) e.preventDefault();
     };
     document.addEventListener('touchmove', preventScroll, { passive: false });
+    // 2. Snap back on any scroll event
+    const snap = () => { if (window.scrollX || window.scrollY) window.scrollTo(0, 0); };
+    window.addEventListener('scroll', snap, { passive: true });
     window.scrollTo(0, 0);
     return () => {
       document.removeEventListener('touchmove', preventScroll);
+      window.removeEventListener('scroll', snap);
     };
   }, []);
+
+  // 3. Reset scroll synchronously after every render (catches transform-driven drift)
+  useLayoutEffect(() => {
+    if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
+  });
 
   // hostId can be a number or string depending on whether the room was loaded
   // from the DB (TEXT column) or created fresh in memory. Normalise to string.
