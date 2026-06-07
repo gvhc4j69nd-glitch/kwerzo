@@ -29,13 +29,20 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
     return () => window.removeEventListener('resize', update);
   }, []);
 
-  // Lock window scroll to (0,0) for the lifetime of the game page.
-  // iOS Safari can drift scrollX when react-zoom-pan-pinch transforms the board.
+  // Hard-lock iOS scroll. iOS Safari expands the scroll area for CSS transforms
+  // even inside overflow:hidden containers, causing window.scrollX to drift when
+  // the board is panned. preventDefault on touchmove is the only reliable fix.
   useEffect(() => {
-    const lock = () => { if (window.scrollX !== 0 || window.scrollY !== 0) window.scrollTo(0, 0); };
-    window.addEventListener('scroll', lock, { passive: true });
+    const preventScroll = (e) => {
+      // Allow natural scrolling only inside the tile tray and pregame panel
+      if (e.target.closest('.tile-tray') || e.target.closest('.mob-pregame') || e.target.closest('.mob-scores')) return;
+      if (e.cancelable) e.preventDefault();
+    };
+    document.addEventListener('touchmove', preventScroll, { passive: false });
     window.scrollTo(0, 0);
-    return () => window.removeEventListener('scroll', lock);
+    return () => {
+      document.removeEventListener('touchmove', preventScroll);
+    };
   }, []);
 
   // hostId can be a number or string depending on whether the room was loaded
@@ -496,16 +503,6 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
               onDragEnd={onTrayDragEnd}
               onDragOver={e => e.preventDefault()}
               onClick={() => {
-                if (swapMode) {
-                  setSwapSelection(prev => prev.includes(origIdx) ? prev.filter(x => x !== origIdx) : [...prev, origIdx]);
-                  return;
-                }
-                if (!myTurn || used) return;
-                setSelectedHandIdx(prev => prev === origIdx ? null : origIdx);
-                setMoveError('');
-              }}
-              onTouchEnd={e => {
-                e.preventDefault();
                 if (swapMode) {
                   setSwapSelection(prev => prev.includes(origIdx) ? prev.filter(x => x !== origIdx) : [...prev, origIdx]);
                   return;
