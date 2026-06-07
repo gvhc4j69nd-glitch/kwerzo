@@ -41,6 +41,8 @@ async function initDb() {
         total_score INTEGER DEFAULT 0,
         elo_rating INTEGER DEFAULT 1000
       );
+      ALTER TABLE kwerzo_leaderboard ADD COLUMN IF NOT EXISTS elo_rating INTEGER DEFAULT 1000;
+      ALTER TABLE kwerzo_leaderboard ADD COLUMN IF NOT EXISTS total_score INTEGER DEFAULT 0;
       CREATE TABLE IF NOT EXISTS kwerzo_rooms (
         room_id          VARCHAR(16) PRIMARY KEY,
         host_id          TEXT        NOT NULL,

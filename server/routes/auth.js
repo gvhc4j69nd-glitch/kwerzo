@@ -83,6 +83,11 @@ router.post('/login', async (req, res) => {
     if (!user) return res.status(401).json({ error: 'Invalid username or password' });
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) return res.status(401).json({ error: 'Invalid username or password' });
+    // Ensure leaderboard row exists for existing users (idempotent)
+    await db.pool.query(
+      'INSERT INTO kwerzo_leaderboard (user_id) VALUES ($1) ON CONFLICT DO NOTHING',
+      [user.id]
+    ).catch(() => {});
     const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id: user.id, username: user.username, email: user.email } });
   } catch (err) {
