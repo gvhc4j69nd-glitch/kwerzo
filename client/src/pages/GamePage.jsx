@@ -21,7 +21,10 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
   const [trayOrder,       setTrayOrder]       = useState([]);
   const [dragTrayIdx,     setDragTrayIdx]     = useState(null);
   const [botDifficulty,   setBotDifficulty]   = useState('medium');
+  const [showTurnOverlay, setShowTurnOverlay] = useState(false);
+  const prevMyTurn = useRef(false);
   const transformRef = useRef(null);
+  const touchDragRef = useRef({ active: false, startIdx: null });
 
   useEffect(() => {
     const update = () => setIsMobile(navigator.maxTouchPoints > 0 || window.innerWidth < 1024);
@@ -71,6 +74,17 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
   useEffect(() => {
     setTrayOrder(myHand.map((_, i) => i));
   }, [myHand.length]);
+
+  // Show "Your Turn" overlay when turn transitions to local player
+  useEffect(() => {
+    if (myTurn && !prevMyTurn.current) {
+      setShowTurnOverlay(true);
+      const t = setTimeout(() => setShowTurnOverlay(false), 2000);
+      prevMyTurn.current = true;
+      return () => clearTimeout(t);
+    }
+    prevMyTurn.current = myTurn;
+  }, [myTurn]);
 
   // ── Socket ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -180,6 +194,10 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
     });
   }
   function onTrayDragEnd() { setDragTrayIdx(null); }
+
+  const trayTileSize = isMobile
+    ? Math.min(CELL, Math.floor((window.innerWidth - 24 - 5 * 8) / 6))
+    : CELL;
 
   const validDropCells    = getValidDropCells();
 
@@ -494,6 +512,13 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
         </div>
       )}
 
+      {/* ════ YOUR TURN OVERLAY ════ */}
+      {showTurnOverlay && gameState && (
+        <div className="turn-overlay" onClick={() => setShowTurnOverlay(false)} onTouchStart={() => setShowTurnOverlay(false)}>
+          <div className="turn-overlay-msg">⚡ Your Turn!</div>
+        </div>
+      )}
+
       {/* ════ TILE TRAY — always full width, single row ════ */}
       <div className="tile-tray">
         {myHand.length === 0 && gameState && (
@@ -510,11 +535,31 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
             <div
               key={origIdx}
               className={`hand-slot${used ? ' used' : ''}${swapSel ? ' swap-selected' : ''}${isSelected ? ' selected-slot' : ''}${isDragging ? ' dragging-tile' : ''}`}
+              data-origidx={origIdx}
               draggable
               onDragStart={() => onTrayDragStart(origIdx)}
               onDragEnter={() => onTrayDragEnter(origIdx)}
               onDragEnd={onTrayDragEnd}
               onDragOver={e => e.preventDefault()}
+              onTouchStart={e => {
+                touchDragRef.current = { active: true, startIdx: origIdx };
+                setDragTrayIdx(origIdx);
+              }}
+              onTouchMove={e => {
+                if (!touchDragRef.current.active) return;
+                const touch = e.touches[0];
+                const el = document.elementFromPoint(touch.clientX, touch.clientY);
+                const slot = el?.closest('[data-origidx]');
+                if (!slot) return;
+                const toIdx = parseInt(slot.dataset.origidx);
+                if (isNaN(toIdx) || toIdx === touchDragRef.current.startIdx) return;
+                onTrayDragEnter(toIdx);
+                touchDragRef.current.startIdx = toIdx;
+              }}
+              onTouchEnd={() => {
+                touchDragRef.current = { active: false, startIdx: null };
+                onTrayDragEnd();
+              }}
               onClick={() => {
                 if (swapMode) {
                   setSwapSelection(prev => prev.includes(origIdx) ? prev.filter(x => x !== origIdx) : [...prev, origIdx]);
@@ -525,7 +570,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
                 setMoveError('');
               }}
             >
-              <KwerzoTile shape={tile.shape} color={tile.color} size={CELL} selected={isSelected} />
+              <KwerzoTile shape={tile.shape} color={tile.color} size={trayTileSize} selected={isSelected} />
             </div>
           );
         })}

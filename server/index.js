@@ -284,6 +284,9 @@ io.on('connection', (socket) => {
     const roomId = socketRooms.get(socket.id);
     if (roomId) {
       socketRooms.delete(socket.id);
+      // For playing games, skip leaveRoom so reconnecting players are restored
+      // via session_restored instead of being kicked out.
+      if (roomManager.getRoom(roomId)?.status === 'playing') return;
       setTimeout(() => {
         const stillConnected = [...io.sockets.sockets.values()]
           .some(s => s.user?.userId === userId && s.id !== socket.id);
