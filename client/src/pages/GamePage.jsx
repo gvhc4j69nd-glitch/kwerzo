@@ -20,6 +20,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
   );
   const [trayOrder,       setTrayOrder]       = useState([]);
   const [dragTrayIdx,     setDragTrayIdx]     = useState(null);
+  const [botDifficulty,   setBotDifficulty]   = useState('medium');
   const transformRef = useRef(null);
 
   useEffect(() => {
@@ -27,6 +28,10 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
   }, []);
+
+  // hostId can be a number or string depending on whether the room was loaded
+  // from the DB (TEXT column) or created fresh in memory. Normalise to string.
+  const isHost = String(room?.hostId) === String(user?.id);
 
   const myTurn   = gameState && gameState.players[gameState.currentPlayerIndex]?.id === user.id;
   const myPlayer = gameState?.players.find(p => p.id === user.id);
@@ -241,27 +246,28 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
           {moveError && <div className="move-error">{moveError}</div>}
 
           <div className="game-actions">
-            {!gameState && room?.hostId === user.id && (
+            {!gameState && isHost && (
               <div className="add-bot-row">
-                <select className="bot-diff-select" id="botDiff">
+                <select
+                  className="bot-diff-select"
+                  value={botDifficulty}
+                  onChange={e => setBotDifficulty(e.target.value)}
+                >
                   <option value="easy">Easy Bot</option>
-                  <option value="medium" defaultValue>Medium Bot</option>
+                  <option value="medium">Medium Bot</option>
                   <option value="hard">Hard Bot</option>
                 </select>
                 <button
                   className="btn-secondary"
                   disabled={room?.players.length >= 4}
-                  onClick={() => {
-                    const diff = document.getElementById('botDiff').value;
-                    socket.emit('add_bot', { roomId, difficulty: diff });
-                  }}
+                  onClick={() => socket.emit('add_bot', { roomId, difficulty: botDifficulty })}
                 >+ Add Bot</button>
               </div>
             )}
             {!gameState && (
               room?.players.length < 2
                 ? <div className="waiting-msg">Waiting for players…</div>
-                : room?.hostId === user.id
+                : isHost
                   ? <button className="btn-primary" onClick={() => socket.emit('start_game', { roomId })}>Start Game</button>
                   : <div className="waiting-msg">Waiting for host…</div>
             )}
@@ -365,19 +371,21 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
           <span className="mob-wait">Waiting for {currentTurnPlayer?.username}…</span>
         )}
         {!gameState && (
-          room?.hostId === user.id ? (
+          isHost ? (
             <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-              <select className="bot-diff-select" id="botDiffMob">
+              <select
+                className="bot-diff-select"
+                value={botDifficulty}
+                onChange={e => setBotDifficulty(e.target.value)}
+              >
                 <option value="easy">Easy</option>
                 <option value="medium">Medium</option>
                 <option value="hard">Hard</option>
               </select>
               <button className="btn-secondary btn-sm"
                 disabled={room?.players.length >= 4}
-                onClick={() => {
-                  const diff = document.getElementById('botDiffMob').value;
-                  socket.emit('add_bot', { roomId, difficulty: diff });
-                }}>+ Bot</button>
+                onClick={() => socket.emit('add_bot', { roomId, difficulty: botDifficulty })}
+              >+ Bot</button>
               {room?.players.length >= 2 && (
                 <button className="btn-primary btn-sm" onClick={() => socket.emit('start_game', { roomId })}>Start</button>
               )}

@@ -121,7 +121,7 @@ function leaveRoom(roomId, userId) {
 function startGame(roomId, userId) {
   const room = rooms.get(roomId);
   if (!room) return { error: 'Room not found' };
-  if (room.hostId !== userId) return { error: 'Only the host can start the game' };
+  if (String(room.hostId) !== String(userId)) return { error: 'Only the host can start the game' };
   if (room.players.length < 2) return { error: 'Need at least 2 players to start' };
   if (room.status !== 'waiting') return { error: 'Game already started' };
 
