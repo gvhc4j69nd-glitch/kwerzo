@@ -349,7 +349,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
                           className="drop-target"
                           style={{ position: 'absolute', left: (x - minX) * CELL, top: (y - minY) * CELL, width: CELL, height: CELL }}
                           onClick={() => handleCellClick(x, y)}
-                          onTouchEnd={e => { e.stopPropagation(); handleCellClick(x, y); }}
+                          onTouchEnd={e => { e.preventDefault(); e.stopPropagation(); handleCellClick(x, y); }}
                         />
                       );
                     })}
@@ -360,7 +360,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
                         className="board-cell-wrapper staged-cell"
                         style={{ left: (x - minX) * CELL, top: (y - minY) * CELL }}
                         onClick={() => handleCellClick(x, y)}
-                        onTouchEnd={e => { e.stopPropagation(); handleCellClick(x, y); }}
+                        onTouchEnd={e => { e.preventDefault(); e.stopPropagation(); handleCellClick(x, y); }}
                       >
                         <KwerzoTile shape={tile.shape} color={tile.color} size={CELL} staged />
                       </div>
