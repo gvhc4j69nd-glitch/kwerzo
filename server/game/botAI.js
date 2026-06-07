@@ -133,9 +133,9 @@ function effectiveScore(move, board, difficulty) {
   const base    = move.pts;
   const kBonus  = kwerzoPotential(board, move.placements);
 
-  if (difficulty === 'easy')   return base;                         // ignores strategy
-  if (difficulty === 'medium') return base + Math.round(kBonus * 0.6); // partial awareness
-  return base + kBonus;                                              // hard: full awareness
+  if (difficulty === 'easy')   return base + Math.round(kBonus * 0.6); // 60% awareness
+  if (difficulty === 'medium') return base + Math.round(kBonus * 0.9); // 90% awareness
+  return base + kBonus;                                                  // hard: 100%
 }
 
 // ── Pick a move by difficulty ─────────────────────────────────────────────────
