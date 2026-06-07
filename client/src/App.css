@@ -584,6 +584,8 @@
   .tile-tray {
     padding: 10px 12px;
     gap: 8px;
+    touch-action: none;          /* hand ALL tray touches to JS — browser never hijacks for scroll */
+    overflow-x: visible;         /* no overflow needed; tiles are sized to fit */
   }
 
   /* When pre-game panel is active, hide elements that compete for height */

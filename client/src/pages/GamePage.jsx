@@ -38,7 +38,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
   useEffect(() => {
     // 1. Prevent touch-driven scroll
     const preventScroll = (e) => {
-      if (e.target.closest('.tile-tray') || e.target.closest('.mob-pregame') || e.target.closest('.mob-scores')) return;
+      if (e.target.closest('.mob-pregame') || e.target.closest('.mob-scores')) return;
       if (e.cancelable) e.preventDefault();
     };
     document.addEventListener('touchmove', preventScroll, { passive: false });
@@ -58,31 +58,41 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
   });
 
   // Native touch-drag reorder for iOS Safari.
-  // React's onTouchMove is passive in React 17+ so e.preventDefault() is a no-op there.
-  // We register a non-passive native listener directly on the tray element instead.
+  // touch-action: none on .tile-tray (set in CSS) hands ALL touch events to JS —
+  // the browser never commits to a scroll gesture so our listeners get reliable events
+  // and click events still fire for short taps.
   useEffect(() => {
     const tray = trayRef.current;
     if (!tray) return;
 
     let dragOrigIdx = null;
+    let startX = 0, startY = 0;
+    let didDrag = false;
+    const DRAG_THRESHOLD = 8; // px — smaller than this is a tap, not a drag
 
     function handleTouchStart(e) {
       const slot = e.target.closest('[data-origidx]');
       if (!slot) return;
       dragOrigIdx = parseInt(slot.dataset.origidx);
+      const t = e.touches[0];
+      startX = t.clientX; startY = t.clientY;
+      didDrag = false;
       setDragTrayIdx(dragOrigIdx);
     }
 
     function handleTouchMove(e) {
       if (dragOrigIdx === null) return;
-      e.preventDefault(); // stop page scroll while reordering — works because passive: false
-      const touch = e.touches[0];
-      const el = document.elementFromPoint(touch.clientX, touch.clientY);
+      const t = e.touches[0];
+      // Only start swapping after the finger has moved past the threshold
+      if (!didDrag) {
+        if (Math.abs(t.clientX - startX) < DRAG_THRESHOLD && Math.abs(t.clientY - startY) < DRAG_THRESHOLD) return;
+        didDrag = true;
+      }
+      const el = document.elementFromPoint(t.clientX, t.clientY);
       const slot = el?.closest('[data-origidx]');
       if (!slot) return;
       const toIdx = parseInt(slot.dataset.origidx);
       if (isNaN(toIdx) || toIdx === dragOrigIdx) return;
-      // Swap in tray order
       setTrayOrder(prev => {
         const next = [...prev];
         const from = next.indexOf(dragOrigIdx);
@@ -92,16 +102,19 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
         next.splice(to, 0, dragOrigIdx);
         return next;
       });
-      dragOrigIdx = toIdx; // track so next move compares from new position
+      dragOrigIdx = toIdx;
     }
 
     function handleTouchEnd() {
       dragOrigIdx = null;
+      didDrag = false;
       setDragTrayIdx(null);
     }
 
+    // passive: true on all — touch-action: none already tells iOS not to scroll,
+    // so we don't need preventDefault for scroll suppression.
     tray.addEventListener('touchstart', handleTouchStart, { passive: true });
-    tray.addEventListener('touchmove',  handleTouchMove,  { passive: false });
+    tray.addEventListener('touchmove',  handleTouchMove,  { passive: true });
     tray.addEventListener('touchend',   handleTouchEnd,   { passive: true });
 
     return () => {
@@ -109,7 +122,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       tray.removeEventListener('touchmove',  handleTouchMove);
       tray.removeEventListener('touchend',   handleTouchEnd);
     };
-  }, []); // setDragTrayIdx / setTrayOrder are stable state setters
+  }, []);
 
   // hostId can be a number or string depending on whether the room was loaded
   // from the DB (TEXT column) or created fresh in memory. Normalise to string.
