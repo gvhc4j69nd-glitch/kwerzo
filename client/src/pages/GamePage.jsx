@@ -57,36 +57,33 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
     if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
   });
 
-  // Native touch-drag reorder for iOS Safari.
-  // touch-action: none on .tile-tray (set in CSS) hands ALL touch events to JS —
-  // the browser never commits to a scroll gesture so our listeners get reliable events
-  // and click events still fire for short taps.
+  // Touch-drag reorder for iOS Safari — document-level listeners.
+  // Document-level is more reliable than element-level: touchmove is always
+  // delivered here even if the finger moves outside the original target.
+  // Bug fix: dragOrigIdx is NEVER updated mid-drag — we always reorder the
+  // tile we started dragging, not whatever tile we last swapped with.
   useEffect(() => {
-    const tray = trayRef.current;
-    if (!tray) return;
-
-    let dragOrigIdx = null;
+    let dragOrigIdx = null; // origIdx of the tile being dragged — NEVER changes mid-drag
     let startX = 0, startY = 0;
-    let didDrag = false;
-    const DRAG_THRESHOLD = 8; // px — smaller than this is a tap, not a drag
+    let isDragging = false;
+    const THRESHOLD = 10;
 
-    function handleTouchStart(e) {
+    function onTouchStart(e) {
       const slot = e.target.closest('[data-origidx]');
-      if (!slot) return;
+      if (!slot) { dragOrigIdx = null; return; }
       dragOrigIdx = parseInt(slot.dataset.origidx);
-      const t = e.touches[0];
-      startX = t.clientX; startY = t.clientY;
-      didDrag = false;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      isDragging = false;
       setDragTrayIdx(dragOrigIdx);
     }
 
-    function handleTouchMove(e) {
+    function onTouchMove(e) {
       if (dragOrigIdx === null) return;
       const t = e.touches[0];
-      // Only start swapping after the finger has moved past the threshold
-      if (!didDrag) {
-        if (Math.abs(t.clientX - startX) < DRAG_THRESHOLD && Math.abs(t.clientY - startY) < DRAG_THRESHOLD) return;
-        didDrag = true;
+      if (!isDragging) {
+        if (Math.abs(t.clientX - startX) < THRESHOLD && Math.abs(t.clientY - startY) < THRESHOLD) return;
+        isDragging = true;
       }
       const el = document.elementFromPoint(t.clientX, t.clientY);
       const slot = el?.closest('[data-origidx]');
@@ -95,32 +92,29 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       if (isNaN(toIdx) || toIdx === dragOrigIdx) return;
       setTrayOrder(prev => {
         const next = [...prev];
-        const from = next.indexOf(dragOrigIdx);
-        const to   = next.indexOf(toIdx);
+        const from = next.indexOf(dragOrigIdx); // where the dragged tile currently is
+        const to   = next.indexOf(toIdx);       // where the hovered tile currently is
         if (from === -1 || to === -1) return prev;
         next.splice(from, 1);
         next.splice(to, 0, dragOrigIdx);
         return next;
       });
-      dragOrigIdx = toIdx;
+      // *** Do NOT update dragOrigIdx — always track the same original tile ***
     }
 
-    function handleTouchEnd() {
+    function onTouchEnd() {
       dragOrigIdx = null;
-      didDrag = false;
+      isDragging = false;
       setDragTrayIdx(null);
     }
 
-    // passive: true on all — touch-action: none already tells iOS not to scroll,
-    // so we don't need preventDefault for scroll suppression.
-    tray.addEventListener('touchstart', handleTouchStart, { passive: true });
-    tray.addEventListener('touchmove',  handleTouchMove,  { passive: true });
-    tray.addEventListener('touchend',   handleTouchEnd,   { passive: true });
-
+    document.addEventListener('touchstart', onTouchStart, { passive: true });
+    document.addEventListener('touchmove',  onTouchMove,  { passive: true });
+    document.addEventListener('touchend',   onTouchEnd,   { passive: true });
     return () => {
-      tray.removeEventListener('touchstart', handleTouchStart);
-      tray.removeEventListener('touchmove',  handleTouchMove);
-      tray.removeEventListener('touchend',   handleTouchEnd);
+      document.removeEventListener('touchstart', onTouchStart);
+      document.removeEventListener('touchmove',  onTouchMove);
+      document.removeEventListener('touchend',   onTouchEnd);
     };
   }, []);
 
