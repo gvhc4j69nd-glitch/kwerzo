@@ -29,6 +29,15 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
     return () => window.removeEventListener('resize', update);
   }, []);
 
+  // Lock window scroll to (0,0) for the lifetime of the game page.
+  // iOS Safari can drift scrollX when react-zoom-pan-pinch transforms the board.
+  useEffect(() => {
+    const lock = () => { if (window.scrollX !== 0 || window.scrollY !== 0) window.scrollTo(0, 0); };
+    window.addEventListener('scroll', lock, { passive: true });
+    window.scrollTo(0, 0);
+    return () => window.removeEventListener('scroll', lock);
+  }, []);
+
   // hostId can be a number or string depending on whether the room was loaded
   // from the DB (TEXT column) or created fresh in memory. Normalise to string.
   const isHost = String(room?.hostId) === String(user?.id);

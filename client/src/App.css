@@ -329,14 +329,15 @@
    ══════════════════════════════════════════════════════════ */
 
 .game-page {
+  position: fixed;           /* anchors to viewport — iOS can't scroll it away */
+  top: 0; left: 0;
+  width: 100%; height: 100%;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
   background: var(--bg);
   overflow: hidden;
-  overscroll-behavior: none;   /* prevent rubber-band / scroll bleed on iOS */
-  touch-action: pan-y;         /* allow vertical scroll on page but not horizontal drift */
+  overscroll-behavior: none;
+  touch-action: none;
 }
 
 /* ── Desktop mobile header: hidden ── */
