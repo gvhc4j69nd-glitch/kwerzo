@@ -25,6 +25,30 @@ app.use(express.json());
 app.use('/api/auth', authRouter);
 app.use('/api/leaderboard', leaderboardRouter);
 
+// Health / diagnostics endpoint — tells us immediately whether DB is wired up
+app.get('/api/health', async (req, res) => {
+  const { db } = require('./db/schema');
+  if (db.devMode) {
+    return res.json({
+      status:  'degraded',
+      mode:    'memory',
+      message: 'DATABASE_URL is not set — data is lost on every restart. ' +
+               'Add a PostgreSQL database in Railway and set DATABASE_URL.',
+    });
+  }
+  try {
+    const result = await db.pool.query(
+      `SELECT
+         (SELECT COUNT(*) FROM kwerzo_users)        AS users,
+         (SELECT COUNT(*) FROM kwerzo_leaderboard)  AS lb_rows,
+         (SELECT COUNT(*) FROM kwerzo_rooms)        AS rooms`
+    );
+    res.json({ status: 'ok', mode: 'postgres', stats: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ status: 'error', mode: 'postgres', message: err.message });
+  }
+});
+
 // Serve built client
 const clientDist = path.join(__dirname, '../client/dist');
 app.use(express.static(clientDist));

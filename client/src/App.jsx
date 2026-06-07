@@ -1,17 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { getSocket, disconnectSocket } from './lib/socket';
+import { api } from './lib/api';
 import AuthPage from './pages/AuthPage';
 import LobbyPage from './pages/LobbyPage';
 import GamePage from './pages/GamePage';
 import './App.css';
 
 export default function App() {
-  const [user, setUser] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('kwerzo_user')); } catch { return null; }
-  });
-  const [token, setToken] = useState(() => localStorage.getItem('kwerzo_token'));
-  const [socket, setSocket] = useState(null);
-  const [activeRoom, setActiveRoom] = useState(null);  // { roomId, room }
+  const [user,       setUser]       = useState(() => { try { return JSON.parse(localStorage.getItem('kwerzo_user')); } catch { return null; } });
+  const [token,      setToken]      = useState(() => localStorage.getItem('kwerzo_token'));
+  const [socket,     setSocket]     = useState(null);
+  const [activeRoom, setActiveRoom] = useState(null);
+  const [memoryMode, setMemoryMode] = useState(false);
+
+  // Check server mode once on load
+  useEffect(() => {
+    api.health().then(h => setMemoryMode(h.mode === 'memory')).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!token || !user) return;
@@ -19,21 +24,15 @@ export default function App() {
     s.connect();
     setSocket(s);
 
-    // Restore active game session after (re)connect
     s.on('session_restored', ({ roomId, room, state }) => {
       setActiveRoom({ roomId, room, initialState: state });
     });
-
-    // Game expired due to 72h inactivity
     s.on('room_expired', ({ roomId }) => {
       setActiveRoom(prev => (prev?.roomId === roomId ? null : prev));
       alert('Your game ended due to 72 hours of inactivity.');
     });
 
-    return () => {
-      s.off('session_restored');
-      s.off('room_expired');
-    };
+    return () => { s.off('session_restored'); s.off('room_expired'); };
   }, [token]);
 
   function handleAuth(userData, tok) {
@@ -47,43 +46,60 @@ export default function App() {
     localStorage.removeItem('kwerzo_token');
     localStorage.removeItem('kwerzo_user');
     disconnectSocket();
-    setUser(null);
-    setToken(null);
-    setSocket(null);
-    setActiveRoom(null);
+    setUser(null); setToken(null); setSocket(null); setActiveRoom(null);
   }
 
-  function handleJoinRoom(roomId, room) {
-    setActiveRoom({ roomId, room });
-  }
+  function handleJoinRoom(roomId, room) { setActiveRoom({ roomId, room }); }
+  function handleLeaveRoom()            { setActiveRoom(null); }
 
-  function handleLeaveRoom() {
-    setActiveRoom(null);
-  }
+  const MemBanner = memoryMode ? () => (
+    <div style={{
+      background: '#7c3aed', color: '#fff', fontSize: 12, fontWeight: 600,
+      textAlign: 'center', padding: '7px 12px', position: 'fixed',
+      top: 0, left: 0, right: 0, zIndex: 9999, lineHeight: 1.4,
+    }}>
+      ⚠️ No database connected — accounts and scores reset on every server restart.
+      Set DATABASE_URL in Railway to persist data.
+    </div>
+  ) : () => null;
 
   if (!user || !token) {
-    return <AuthPage onAuth={handleAuth} />;
+    return (
+      <>
+        <MemBanner />
+        {memoryMode && <div style={{ height: 32 }} />}
+        <AuthPage onAuth={handleAuth} />
+      </>
+    );
   }
 
   if (activeRoom) {
     return (
-      <GamePage
-        socket={socket}
-        user={user}
-        roomId={activeRoom.roomId}
-        initialRoom={activeRoom.room}
-        initialState={activeRoom.initialState || null}
-        onLeave={handleLeaveRoom}
-      />
+      <>
+        <MemBanner />
+        {memoryMode && <div style={{ height: 32 }} />}
+        <GamePage
+          socket={socket}
+          user={user}
+          roomId={activeRoom.roomId}
+          initialRoom={activeRoom.room}
+          initialState={activeRoom.initialState || null}
+          onLeave={handleLeaveRoom}
+        />
+      </>
     );
   }
 
   return (
-    <LobbyPage
-      socket={socket}
-      user={user}
-      onJoinRoom={handleJoinRoom}
-      onLogout={handleLogout}
-    />
+    <>
+      <MemBanner />
+      {memoryMode && <div style={{ height: 32 }} />}
+      <LobbyPage
+        socket={socket}
+        user={user}
+        onJoinRoom={handleJoinRoom}
+        onLogout={handleLogout}
+      />
+    </>
   );
 }
