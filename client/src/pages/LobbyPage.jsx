@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import FriendsPanel from '../components/FriendsPanel';
+import NotificationCenter from '../components/NotificationCenter';
 
 export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
   const [rooms, setRooms] = useState([]);
@@ -59,6 +60,7 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
           <span className="logo-k">K</span>wer<span className="logo-z">z</span>o
         </div>
         <div className="header-right">
+          <NotificationCenter socket={socket} user={user} />
           <span className="username-badge">👤 {user.username}</span>
           <button className="btn-ghost" onClick={onLogout}>Sign Out</button>
         </div>

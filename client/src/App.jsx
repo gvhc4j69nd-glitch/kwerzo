@@ -4,7 +4,6 @@ import { api } from './lib/api';
 import AuthPage from './pages/AuthPage';
 import LobbyPage from './pages/LobbyPage';
 import GamePage from './pages/GamePage';
-import NotificationCenter from './components/NotificationCenter';
 import './App.css';
 
 export default function App() {
@@ -78,7 +77,6 @@ export default function App() {
       <>
         <MemBanner />
         {memoryMode && <div style={{ height: 32 }} />}
-        <NotificationCenter socket={socket} user={user} />
         <GamePage
           socket={socket}
           user={user}
@@ -95,7 +93,6 @@ export default function App() {
     <>
       <MemBanner />
       {memoryMode && <div style={{ height: 32 }} />}
-      <NotificationCenter socket={socket} user={user} />
       <LobbyPage
         socket={socket}
         user={user}

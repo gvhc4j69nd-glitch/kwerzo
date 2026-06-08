@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import KwerzoTile from '../components/KwerzoTile';
 import InviteFriendRow from '../components/InviteFriendRow';
+import NotificationCenter from '../components/NotificationCenter';
 
 const CELL = 56;
 const PAD  = 3;   // empty cells of padding around tiles
@@ -361,6 +362,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
           <span className="mob-logo"><span className="logo-k">K</span>wer<span className="logo-z">z</span>o</span>
           <div className="mob-header-right">
             {gameState && <span className="mob-bag">🎒 {gameState.bag} left</span>}
+            <NotificationCenter socket={socket} user={user} />
             <button className="mob-leave-btn" onClick={handleLeave}>✕</button>
           </div>
         </div>
@@ -382,7 +384,10 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
 
         {/* ── Desktop sidebar — only rendered when not mobile ── */}
         {!isMobile && <aside className="game-sidebar">
-          <div className="sidebar-logo"><span className="logo-k">K</span>wer<span className="logo-z">z</span>o</div>
+          <div className="sidebar-logo-row">
+            <div className="sidebar-logo"><span className="logo-k">K</span>wer<span className="logo-z">z</span>o</div>
+            <NotificationCenter socket={socket} user={user} />
+          </div>
 
           <div className="players-panel">
             {room?.players.map(rp => {
