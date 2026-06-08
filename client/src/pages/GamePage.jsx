@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import KwerzoTile from '../components/KwerzoTile';
-import InviteFriendRow from '../components/InviteFriendRow';
+import AddPlayersPanel from '../components/AddPlayersPanel';
 import NotificationCenter from '../components/NotificationCenter';
 
 const CELL = 56;
@@ -23,7 +23,6 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
   );
   const [trayOrder,       setTrayOrder]       = useState([]);
   const [dragTrayIdx,     setDragTrayIdx]     = useState(null);
-  const [botDifficulty,   setBotDifficulty]   = useState('medium');
   const [showTurnOverlay, setShowTurnOverlay] = useState(false);
   const prevMyTurn = useRef(false);
   const transformRef = useRef(null);
@@ -413,25 +412,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
 
           <div className="game-actions">
             {!gameState && isHost && (
-              <InviteFriendRow socket={socket} roomId={roomId} room={room} style={{ marginBottom: 8 }} />
-            )}
-            {!gameState && isHost && (
-              <div className="add-bot-row">
-                <select
-                  className="bot-diff-select"
-                  value={botDifficulty}
-                  onChange={e => setBotDifficulty(e.target.value)}
-                >
-                  <option value="easy">Easy Bot</option>
-                  <option value="medium">Medium Bot</option>
-                  <option value="hard">Hard Bot</option>
-                </select>
-                <button
-                  className="btn-secondary"
-                  disabled={room?.players.length >= 4}
-                  onClick={() => socket.emit('add_bot', { roomId, difficulty: botDifficulty })}
-                >+ Add Bot</button>
-              </div>
+              <AddPlayersPanel socket={socket} roomId={roomId} room={room} style={{ marginBottom: 8 }} />
             )}
             {!gameState && (
               room?.players.length < 2
@@ -559,27 +540,8 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
           {/* Host controls */}
           {isHost && (
             <>
-              <div className="mob-pregame-section-label">Invite a friend</div>
-              <InviteFriendRow socket={socket} roomId={roomId} room={room} style={{ marginBottom: 12 }} />
-
-              <div className="mob-pregame-section-label">Add a bot opponent</div>
-              <div className="add-bot-row" style={{ marginBottom: 8 }}>
-                <select
-                  className="bot-diff-select"
-                  value={botDifficulty}
-                  onChange={e => setBotDifficulty(e.target.value)}
-                  style={{ flex: 1 }}
-                >
-                  <option value="easy">Easy Bot (Joe)</option>
-                  <option value="medium">Medium Bot</option>
-                  <option value="hard">Hard Bot (John)</option>
-                </select>
-                <button
-                  className="btn-secondary"
-                  disabled={room?.players.length >= 4}
-                  onClick={() => socket.emit('add_bot', { roomId, difficulty: botDifficulty })}
-                >+ Add Bot</button>
-              </div>
+              <div className="mob-pregame-section-label">Add players</div>
+              <AddPlayersPanel socket={socket} roomId={roomId} room={room} style={{ marginBottom: 12 }} />
 
               {room?.players.length < 2 ? (
                 <div className="mob-wait" style={{ textAlign: 'center', padding: '12px 0' }}>

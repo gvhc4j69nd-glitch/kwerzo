@@ -917,6 +917,68 @@
 .invite-status { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
 .invite-status-error { color: #ff6b6b; }
 
+/* ════ Add Players Panel (pregame: friends + bots, max 3) ════ */
+.add-players-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.add-players-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.add-players-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.add-players-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  gap: 10px;
+}
+.add-players-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.add-players-tag {
+  font-size: 11px;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--text-muted);
+}
+.add-players-plus {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.add-players-plus:hover:not(:disabled) { transform: scale(1.08); }
+.add-players-plus:disabled {
+  background: var(--border);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
 /* ════ Notification Center ════ */
 .notif-center {
   position: relative;
