@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import KwerzoTile from '../components/KwerzoTile';
+import InviteFriendRow from '../components/InviteFriendRow';
 
 const CELL = 56;
 const PAD  = 3;   // empty cells of padding around tiles
@@ -407,6 +408,9 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
 
           <div className="game-actions">
             {!gameState && isHost && (
+              <InviteFriendRow socket={socket} roomId={roomId} room={room} style={{ marginBottom: 8 }} />
+            )}
+            {!gameState && isHost && (
               <div className="add-bot-row">
                 <select
                   className="bot-diff-select"
@@ -550,6 +554,9 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
           {/* Host controls */}
           {isHost && (
             <>
+              <div className="mob-pregame-section-label">Invite a friend</div>
+              <InviteFriendRow socket={socket} roomId={roomId} room={room} style={{ marginBottom: 12 }} />
+
               <div className="mob-pregame-section-label">Add a bot opponent</div>
               <div className="add-bot-row" style={{ marginBottom: 8 }}>
                 <select

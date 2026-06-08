@@ -4,6 +4,7 @@ import { api } from './lib/api';
 import AuthPage from './pages/AuthPage';
 import LobbyPage from './pages/LobbyPage';
 import GamePage from './pages/GamePage';
+import NotificationCenter from './components/NotificationCenter';
 import './App.css';
 
 export default function App() {
@@ -29,7 +30,6 @@ export default function App() {
     });
     s.on('room_expired', ({ roomId }) => {
       setActiveRoom(prev => (prev?.roomId === roomId ? null : prev));
-      alert('Your game ended due to 72 hours of inactivity.');
     });
 
     return () => { s.off('session_restored'); s.off('room_expired'); };
@@ -78,6 +78,7 @@ export default function App() {
       <>
         <MemBanner />
         {memoryMode && <div style={{ height: 32 }} />}
+        <NotificationCenter socket={socket} user={user} />
         <GamePage
           socket={socket}
           user={user}
@@ -94,6 +95,7 @@ export default function App() {
     <>
       <MemBanner />
       {memoryMode && <div style={{ height: 32 }} />}
+      <NotificationCenter socket={socket} user={user} />
       <LobbyPage
         socket={socket}
         user={user}

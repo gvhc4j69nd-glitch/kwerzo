@@ -222,6 +222,57 @@ io.on('connection', (socket) => {
     io.emit('rooms_list', roomManager.listOpenRooms());
   });
 
+  // ── Game invites: invite a friend to your room, they get a notification with accept/decline ──
+  socket.on('invite_to_game', async ({ roomId, friendUserId }) => {
+    const fail = (message) => socket.emit('game_invite_error', { roomId, friendUserId: Number(friendUserId), message });
+
+    const room = roomManager.getRoom(roomId);
+    if (!room) return fail('Room not found');
+    if (!room.players.find(p => p.id === userId)) return fail('You are not in that room');
+    if (room.status !== 'waiting') return fail('Game already in progress');
+    if (room.players.length >= 4) return fail('Room is full');
+
+    try {
+      const friendIds = await require('./db/friendsStore').getAcceptedFriendIds(userId);
+      if (!friendIds.includes(Number(friendUserId))) return fail('You can only invite friends');
+    } catch (err) {
+      console.error('[kwerzo] invite_to_game friend check error:', err.message);
+      return fail('Server error');
+    }
+
+    const friendSockets = [...io.sockets.sockets.values()].filter(s => s.user?.userId === Number(friendUserId));
+    if (friendSockets.length === 0) return fail('That friend is currently offline');
+    if (room.players.find(p => p.id === Number(friendUserId))) return fail('That friend is already in the room');
+
+    for (const fs of friendSockets) {
+      fs.emit('game_invite_received', {
+        roomId,
+        fromUserId: userId,
+        fromUsername: username,
+        playerCount: room.players.length,
+      });
+    }
+    socket.emit('game_invite_sent', { roomId, friendUserId: Number(friendUserId) });
+  });
+
+  socket.on('respond_game_invite', ({ roomId, action, fromUserId }) => {
+    if (action === 'accept') {
+      const result = roomManager.joinRoom(roomId, userId, username);
+      if (result.error) { socket.emit('error', result.error); return; }
+      socket.join(roomId);
+      socketRooms.set(socket.id, roomId);
+      socket.emit('room_joined', {
+        roomId,
+        room: { id: roomId, hostId: result.room.hostId, players: result.room.players, status: result.room.status }
+      });
+      broadcastRoomUpdate(roomId);
+      io.emit('rooms_list', roomManager.listOpenRooms());
+      presence.emitToUser(Number(fromUserId), 'game_invite_accepted', { roomId, byUserId: userId, byUsername: username });
+    } else {
+      presence.emitToUser(Number(fromUserId), 'game_invite_declined', { roomId, byUserId: userId, byUsername: username });
+    }
+  });
+
   socket.on('add_bot', ({ roomId, difficulty }) => {
     const validDifficulties = ['easy', 'medium', 'hard'];
     const diff = validDifficulties.includes(difficulty) ? difficulty : 'medium';
