@@ -183,9 +183,6 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
   useEffect(() => {
     if (myTurn && !prevMyTurn.current) {
       setShowTurnOverlay(true);
-      const t = setTimeout(() => setShowTurnOverlay(false), 2000);
-      prevMyTurn.current = true;
-      return () => clearTimeout(t);
     }
     prevMyTurn.current = myTurn;
   }, [myTurn]);
@@ -602,6 +599,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
         <div className="turn-overlay" onClick={() => setShowTurnOverlay(false)} onTouchStart={() => setShowTurnOverlay(false)}>
           <div className="turn-overlay-msg">
             <div className="turn-overlay-title">⚡ Your Turn!</div>
+            <div className="turn-overlay-tap-hint">Tap anywhere to continue</div>
             {room?.players.filter(rp => rp.id !== user.id).some(rp => lastMoveByPlayer[rp.id]) && (
               <div className="turn-overlay-tiles">
                 <div className="turn-overlay-tiles-label">Last moves:</div>
