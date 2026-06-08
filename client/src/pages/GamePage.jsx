@@ -13,6 +13,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
   const [swapMode,        setSwapMode]        = useState(false);
   const [swapSelection,   setSwapSelection]   = useState([]);
   const [lastMsg,         setLastMsg]         = useState('');
+  const [lastMoveByPlayer, setLastMoveByPlayer] = useState({});
   const [moveError,       setMoveError]       = useState('');
   const [gameOver,        setGameOver]        = useState(null);
   const [isMobile,        setIsMobile]        = useState(
@@ -207,11 +208,14 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       setSwapSelection([]);
       setMoveError('');
     });
-    socket.on('move_made', ({ roomId: id, username, points, type, count }) => {
+    socket.on('move_made', ({ roomId: id, userId: moverId, username, points, type, count }) => {
       if (id !== roomId) return;
-      if      (type === 'swap') setLastMsg(`${username} swapped ${count} tile${count !== 1 ? 's' : ''}`);
-      else if (type === 'pass') setLastMsg(`${username} passed`);
-      else                      setLastMsg(`${username} scored ${points} pt${points !== 1 ? 's' : ''}`);
+      let msg;
+      if      (type === 'swap') msg = `${username} swapped ${count} tile${count !== 1 ? 's' : ''}`;
+      else if (type === 'pass') msg = `${username} passed`;
+      else                      msg = `${username} scored ${points} pt${points !== 1 ? 's' : ''}`;
+      setLastMsg(msg);
+      if (moverId) setLastMoveByPlayer(prev => ({ ...prev, [moverId]: msg }));
     });
     socket.on('move_error', (err) => { setMoveError(err); setStaged([]); });
     socket.on('game_over',  (data) => setGameOver(data));
@@ -624,7 +628,18 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
         <div className="turn-overlay" onClick={() => setShowTurnOverlay(false)} onTouchStart={() => setShowTurnOverlay(false)}>
           <div className="turn-overlay-msg">
             <div className="turn-overlay-title">⚡ Your Turn!</div>
-            {lastMsg && <div className="turn-overlay-last">{lastMsg}</div>}
+            {room?.players.filter(rp => rp.id !== user.id).some(rp => lastMoveByPlayer[rp.id]) && (
+              <div className="turn-overlay-tiles">
+                <div className="turn-overlay-tiles-label">Last moves:</div>
+                {room.players.filter(rp => rp.id !== user.id).map(rp => (
+                  lastMoveByPlayer[rp.id] && (
+                    <div key={rp.id} className="turn-overlay-tile-row">
+                      <span>{lastMoveByPlayer[rp.id]}</span>
+                    </div>
+                  )
+                ))}
+              </div>
+            )}
             {gameState.bag === 0 && (
               <div className="turn-overlay-tiles">
                 <div className="turn-overlay-tiles-label">🎒 Bag empty — tiles remaining:</div>
