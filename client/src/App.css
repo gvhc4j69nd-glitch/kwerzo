@@ -609,6 +609,50 @@
     overflow-x: visible; /* tiles sized to fit on mobile — no scroll needed */
   }
 
+  /* ── Landscape compact header (phone in landscape has ~375px height) ── */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .mob-header {
+      flex-direction: row;
+      align-items: center;
+      padding: 4px 12px;
+      padding-left: max(12px, env(safe-area-inset-left));
+      padding-right: max(12px, env(safe-area-inset-right));
+      padding-top: max(4px, env(safe-area-inset-top));
+      gap: 10px;
+    }
+    .mob-header-top {
+      flex: 1;
+      min-width: 0;
+    }
+    /* Put score chips inline next to the logo row instead of a second row */
+    .mob-scores {
+      flex: 2;
+      justify-content: center;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 4px;
+    }
+    .mob-score-chip {
+      font-size: 11px;
+      padding: 2px 6px;
+    }
+    .mob-status {
+      min-height: 24px;
+      padding: 2px 12px;
+      padding-left: max(12px, env(safe-area-inset-left));
+      padding-right: max(12px, env(safe-area-inset-right));
+    }
+    .mob-actions {
+      padding: 4px 10px;
+      padding-left: max(10px, env(safe-area-inset-left));
+      padding-right: max(10px, env(safe-area-inset-right));
+      padding-bottom: max(4px, env(safe-area-inset-bottom));
+    }
+    .tile-tray {
+      padding: 5px 12px;
+    }
+  }
+
   /* When pre-game panel is active, hide elements that compete for height */
   .pregame-active .game-body   { display: none; }
   .pregame-active .mob-status  { display: none; }

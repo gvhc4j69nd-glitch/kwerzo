@@ -19,7 +19,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
   const [moveError,       setMoveError]       = useState('');
   const [gameOver,        setGameOver]        = useState(null);
   const [isMobile,        setIsMobile]        = useState(
-    () => navigator.maxTouchPoints > 0 || window.innerWidth < 1024
+    () => window.innerWidth < 1024
   );
   const [trayOrder,       setTrayOrder]       = useState([]);
   const [dragTrayIdx,     setDragTrayIdx]     = useState(null);
@@ -29,7 +29,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
   const trayRef = useRef(null);
 
   useEffect(() => {
-    const update = () => setIsMobile(navigator.maxTouchPoints > 0 || window.innerWidth < 1024);
+    const update = () => setIsMobile(window.innerWidth < 1024);
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
   }, []);
