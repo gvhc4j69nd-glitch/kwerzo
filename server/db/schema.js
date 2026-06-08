@@ -14,8 +14,9 @@ if (!db.devMode) {
   });
 }
 
-const memDb   = { users: [], leaderboard: [] };
+const memDb   = { users: [], leaderboard: [], friends: [] };
 let memNextId = 1;
+let memNextFriendId = 1;
 
 // Run one DDL statement; throw on error so the caller knows what failed
 async function runDDL(sql, label) {
@@ -111,6 +112,26 @@ async function initDb() {
       'idx_rooms_activity'
     );
 
+    await runDDL(`
+      CREATE TABLE IF NOT EXISTS kwerzo_friends (
+        id            SERIAL      PRIMARY KEY,
+        requester_id  INTEGER     NOT NULL REFERENCES kwerzo_users(id) ON DELETE CASCADE,
+        addressee_id  INTEGER     NOT NULL REFERENCES kwerzo_users(id) ON DELETE CASCADE,
+        status        VARCHAR(16) NOT NULL DEFAULT 'pending',
+        created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (requester_id, addressee_id)
+      )
+    `, 'kwerzo_friends');
+
+    await runDDL(
+      `CREATE INDEX IF NOT EXISTS idx_friends_requester ON kwerzo_friends(requester_id)`,
+      'idx_friends_requester'
+    );
+    await runDDL(
+      `CREATE INDEX IF NOT EXISTS idx_friends_addressee ON kwerzo_friends(addressee_id)`,
+      'idx_friends_addressee'
+    );
+
     console.log('[kwerzo] DB schema ready');
   } catch (err) {
     console.error('[kwerzo] Schema init failed:', err.message);
@@ -120,4 +141,8 @@ async function initDb() {
   }
 }
 
-module.exports = { db, initDb, memDb, memNextId: () => memNextId++ };
+module.exports = {
+  db, initDb, memDb,
+  memNextId:       () => memNextId++,
+  memNextFriendId: () => memNextFriendId++,
+};

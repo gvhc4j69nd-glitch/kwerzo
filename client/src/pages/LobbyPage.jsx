@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import FriendsPanel from '../components/FriendsPanel';
 
 export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
   const [rooms, setRooms] = useState([]);
@@ -69,6 +70,9 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
         </button>
         <button className={tab === 'leaderboard' ? 'active' : ''} onClick={() => setTab('leaderboard')}>
           Leaderboard
+        </button>
+        <button className={tab === 'friends' ? 'active' : ''} onClick={() => setTab('friends')}>
+          Friends
         </button>
         <button className={tab === 'howtoplay' ? 'active' : ''} onClick={() => setTab('howtoplay')}>
           How to Play
@@ -158,6 +162,12 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {tab === 'friends' && (
+        <div className="lobby-content">
+          <FriendsPanel socket={socket} user={user} />
         </div>
       )}
 

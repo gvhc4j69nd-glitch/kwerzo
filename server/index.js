@@ -10,11 +10,14 @@ const jwt = require('jsonwebtoken');
 const { initDb } = require('./db/schema');
 const authRouter = require('./routes/auth');
 const { router: leaderboardRouter, updateStats } = require('./routes/leaderboard');
+const friendsRouter = require('./routes/friends');
 const roomManager = require('./game/roomManager');
+const presence = require('./presence');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: true, credentials: true } });
+presence.setIO(io);
 
 const PORT = process.env.PORT || 3002;
 const JWT_SECRET = process.env.JWT_SECRET || 'kwerzo-dev-secret';
@@ -24,6 +27,7 @@ app.use(express.json());
 
 app.use('/api/auth', authRouter);
 app.use('/api/leaderboard', leaderboardRouter);
+app.use('/api/friends', friendsRouter);
 
 // Health / diagnostics endpoint — tells us immediately whether DB is wired up
 app.get('/api/health', async (req, res) => {
@@ -160,6 +164,16 @@ function scheduleBotMoves(roomId, delayMs) {
 io.on('connection', (socket) => {
   const { userId, username } = socket.user;
   console.log(`[kwerzo] ${username} connected`);
+  presence.markOnline(userId).catch(console.error);
+
+  socket.on('get_online_friends', async () => {
+    try {
+      const friendIds = await require('./db/friendsStore').getAcceptedFriendIds(userId);
+      socket.emit('online_friends', friendIds.filter(id => presence.isOnline(id)));
+    } catch (err) {
+      console.error('[kwerzo] get_online_friends error:', err.message);
+    }
+  });
 
   // ── Restore any active game session ──────────────────────────────────────
   const activeRoom = roomManager.findActiveRoomForUser(userId);
@@ -281,6 +295,7 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log(`[kwerzo] ${username} disconnected`);
+    presence.markOffline(userId).catch(console.error);
     const roomId = socketRooms.get(socket.id);
     if (roomId) {
       socketRooms.delete(socket.id);

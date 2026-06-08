@@ -19,4 +19,10 @@ export const api = {
   login:     (body) => request('/auth/login',    { method: 'POST', body: JSON.stringify(body) }),
   leaderboard: ()   => request('/leaderboard'),
   health:      ()   => request('/health'),
+
+  searchUsers:        (q)            => request(`/friends/search?q=${encodeURIComponent(q)}`),
+  getFriends:         ()             => request('/friends'),
+  sendFriendRequest:  (username)     => request('/friends/request', { method: 'POST', body: JSON.stringify({ username }) }),
+  respondFriendReq:   (id, action)   => request('/friends/respond', { method: 'POST', body: JSON.stringify({ id, action }) }),
+  removeFriend:       (id)           => request(`/friends/${id}`, { method: 'DELETE' }),
 };

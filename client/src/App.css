@@ -820,3 +820,81 @@
   overscroll-behavior: none;
   contain: layout;           /* CSS containment: transforms inside cannot expand doc scroll area */
 }
+
+/* ════ Friends Panel ════ */
+.friends-panel { display: flex; flex-direction: column; gap: 24px; }
+
+.friends-search {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.friends-search input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+}
+.friends-search input:focus { outline: none; border-color: var(--primary); }
+.friends-search-status { color: var(--text-muted); font-size: 13px; }
+.friends-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.friends-section h3 {
+  font-size: 15px;
+  margin: 0 0 12px;
+  color: var(--text);
+}
+.friends-online-count { color: var(--text-muted); font-weight: 400; font-size: 13px; }
+
+.friend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  gap: 12px;
+}
+
+.friend-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.friend-status {
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: 6px;
+}
+.friend-tag {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.presence-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+}
+.presence-dot.online {
+  background: #43A047;
+  box-shadow: 0 0 6px rgba(67,160,71,0.7);
+}
+.presence-dot.offline { background: #555; }
