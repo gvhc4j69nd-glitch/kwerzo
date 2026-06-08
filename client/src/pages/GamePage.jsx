@@ -131,10 +131,51 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
 
   const lastPlacedKeys = new Set((gameState?.lastPlacements || []).map(p => `${p.x},${p.y}`));
 
-  // Reset tray order when hand size changes (tiles drawn/played)
+  // Rebuild tray order when hand changes — preserve user's arrangement,
+  // match surviving tiles by shape+color, fill played-tile slots with new draws.
+  const prevHandRef2 = useRef(null);
+  const prevHandKeyRef = useRef('');
   useEffect(() => {
-    setTrayOrder(myHand.map((_, i) => i));
-  }, [myHand.length]);
+    const key = myHand.map(t => `${t?.shape}|${t?.color}`).join(',');
+    if (key === prevHandKeyRef.current) return; // tiles unchanged, nothing to do
+    prevHandKeyRef.current = key;
+
+    const prevHand = prevHandRef2.current;
+    setTrayOrder(prevOrder => {
+      if (!prevHand || prevOrder.length === 0) {
+        return myHand.map((_, i) => i); // first deal — default order
+      }
+      // Map each old tile index → new hand index (by shape+color, first-match)
+      const usedNew = new Set();
+      const oldToNew = {};
+      for (let pi = 0; pi < prevHand.length; pi++) {
+        for (let ni = 0; ni < myHand.length; ni++) {
+          if (!usedNew.has(ni) &&
+              myHand[ni]?.shape === prevHand[pi]?.shape &&
+              myHand[ni]?.color === prevHand[pi]?.color) {
+            oldToNew[pi] = ni;
+            usedNew.add(ni);
+            break;
+          }
+        }
+      }
+      // Newly drawn tiles (not matched to anything in prevHand)
+      const brandNew = myHand.map((_, i) => i).filter(i => !usedNew.has(i));
+      let ptr = 0;
+      const result = [];
+      for (const oldIdx of prevOrder) {
+        if (oldToNew[oldIdx] !== undefined) {
+          result.push(oldToNew[oldIdx]);    // tile survived — keep its position
+        } else if (ptr < brandNew.length) {
+          result.push(brandNew[ptr++]);     // played slot → fill with new draw
+        }
+        // if hand shrunk and no new tile available, slot is dropped
+      }
+      while (ptr < brandNew.length) result.push(brandNew[ptr++]); // append any extras
+      return result;
+    });
+    prevHandRef2.current = myHand;
+  });
 
   // Show "Your Turn" overlay when turn transitions to local player
   useEffect(() => {
@@ -186,8 +227,13 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
     };
   }, [socket]);
 
-  // ── Re-center board when tiles change ───────────────────────────────────────
+  // ── Center board once when it first gets tiles; never re-center after ────────
+  const boardCenteredRef = useRef(false);
   useEffect(() => {
+    if (boardCenteredRef.current) return;
+    const tileCount = Object.keys(gameState?.board || {}).length;
+    if (tileCount === 0) return;
+    boardCenteredRef.current = true;
     const t = setTimeout(() => transformRef.current?.centerView(0.9), 80);
     return () => clearTimeout(t);
   }, [gameState?.board]);
@@ -576,7 +622,25 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       {/* ════ YOUR TURN OVERLAY ════ */}
       {showTurnOverlay && gameState && (
         <div className="turn-overlay" onClick={() => setShowTurnOverlay(false)} onTouchStart={() => setShowTurnOverlay(false)}>
-          <div className="turn-overlay-msg">⚡ Your Turn!</div>
+          <div className="turn-overlay-msg">
+            <div className="turn-overlay-title">⚡ Your Turn!</div>
+            {lastMsg && <div className="turn-overlay-last">{lastMsg}</div>}
+            {gameState.bag === 0 && (
+              <div className="turn-overlay-tiles">
+                <div className="turn-overlay-tiles-label">🎒 Bag empty — tiles remaining:</div>
+                {room?.players.map(rp => {
+                  const gp = gameState.players.find(p => p.id === rp.id);
+                  const count = rp.id === user.id ? myHand.length : (gp?.handSize ?? 0);
+                  return (
+                    <div key={rp.id} className="turn-overlay-tile-row">
+                      <span>{rp.username}{rp.id === user.id ? ' (you)' : ''}</span>
+                      <span>{count} tile{count !== 1 ? 's' : ''}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
