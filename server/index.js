@@ -101,6 +101,9 @@ function broadcastRoomUpdate(roomId) {
 }
 
 function handleGameOver(room) {
+  // Cancel any pending bot timer for this room
+  const pending = botTimers.get(room.id);
+  if (pending) { clearTimeout(pending); botTimers.delete(room.id); }
   const players = room.gameState.players;
   const maxScore = Math.max(...players.map(p => p.score));
   const winners  = players.filter(p => p.score === maxScore);
@@ -124,9 +127,17 @@ function handleGameOver(room) {
   }
 }
 
+// Per-room guard so concurrent scheduleBotMoves calls don't double-fire
+const botTimers = new Map();
+
 // Trigger bot moves, chaining until a human's turn (or game over)
 function scheduleBotMoves(roomId, delayMs) {
-  setTimeout(() => {
+  // If a timer is already pending for this room, don't schedule another
+  if (botTimers.has(roomId)) return;
+
+  const t = setTimeout(() => {
+    botTimers.delete(roomId);
+
     const room = roomManager.getRoom(roomId);
     if (!room || room.status !== 'playing') return;
 
@@ -159,6 +170,8 @@ function scheduleBotMoves(roomId, delayMs) {
     const nextBot = roomManager.getCurrentBot(updatedRoom);
     if (nextBot) scheduleBotMoves(roomId, 1200);
   }, delayMs);
+
+  botTimers.set(roomId, t);
 }
 
 io.on('connection', (socket) => {
@@ -192,6 +205,13 @@ io.on('connection', (socket) => {
       state,
     });
     console.log(`[kwerzo] ${username} restored to room ${activeRoom.id}`);
+
+    // If it's currently a bot's turn (e.g. player backgrounded the app while
+    // the bot was supposed to move), kick off the bot chain so it isn't stuck.
+    if (activeRoom.status === 'playing') {
+      const currentBot = roomManager.getCurrentBot(activeRoom);
+      if (currentBot) scheduleBotMoves(activeRoom.id, 800);
+    }
   }
 
   socket.on('list_rooms', () => {
