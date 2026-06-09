@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import KwerzoTile from '../components/KwerzoTile';
 import AddPlayersPanel from '../components/AddPlayersPanel';
+import { playKwerzoSound, prewarmVoices } from '../lib/kwerzoSound';
 import NotificationCenter from '../components/NotificationCenter';
 
 const CELL = 56;
@@ -33,6 +34,9 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
   }, []);
+
+  // Pre-warm TTS voices so they're ready when a Kwerzo is scored
+  useEffect(() => { prewarmVoices(); }, []);
 
   // Hard-lock iOS scroll. iOS Safari expands the scroll area for CSS transforms
   // even inside overflow:hidden containers, causing window.scrollX to drift when
@@ -206,14 +210,15 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       setSwapSelection([]);
       setMoveError('');
     });
-    socket.on('move_made', ({ roomId: id, userId: moverId, username, points, type, count }) => {
+    socket.on('move_made', ({ roomId: id, userId: moverId, username, points, type, count, kwerzo }) => {
       if (id !== roomId) return;
       let msg;
       if      (type === 'swap') msg = `${username} swapped ${count} tile${count !== 1 ? 's' : ''}`;
       else if (type === 'pass') msg = `${username} passed`;
-      else                      msg = `${username} scored ${points} pt${points !== 1 ? 's' : ''}`;
+      else                      msg = `${username} scored ${points} pt${points !== 1 ? 's' : ''}${kwerzo ? ' — Kwerzo! 🎉' : ''}`;
       setLastMsg(msg);
       if (moverId) setLastMoveByPlayer(prev => ({ ...prev, [moverId]: msg }));
+      if (kwerzo) playKwerzoSound();
     });
     socket.on('move_error', (err) => { setMoveError(err); setStaged([]); });
     socket.on('game_over',  (data) => setGameOver(data));

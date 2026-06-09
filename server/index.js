@@ -163,6 +163,7 @@ function scheduleBotMoves(roomId, delayMs) {
       username: botPlayer.username,
       type:     type === 'place' ? undefined : type,
       points:   result.points,
+      kwerzo:   result.kwerzo || false,
       count:    result.count,
     });
 
@@ -339,6 +340,7 @@ io.on('connection', (socket) => {
       io.to(roomId).emit('move_made', {
         roomId, userId, username,
         points: moveResult.points,
+        kwerzo: moveResult.kwerzo || false,
       });
       scheduleBotMoves(roomId, 900);
     }

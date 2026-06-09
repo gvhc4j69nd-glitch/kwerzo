@@ -139,6 +139,7 @@ function scoreMove(board, placements) {
 
   const scoredLines = new Set();
   let total = 0;
+  let kwerzo = false;
 
   for (const { x, y } of placements) {
     for (const dir of ['h', 'v']) {
@@ -152,12 +153,12 @@ function scoreMove(board, placements) {
       if (scoredLines.has(lineKey)) continue;
       scoredLines.add(lineKey);
       total += line.length;
-      if (line.length === KWERZO_SIZE) total += KWERZO_BONUS;
+      if (line.length === KWERZO_SIZE) { total += KWERZO_BONUS; kwerzo = true; }
     }
   }
 
   if (total === 0) total = 1;
-  return total;
+  return { points: total, kwerzo };
 }
 
 function createInitialState(playerIds) {
@@ -199,7 +200,7 @@ function applyMove(state, userId, placements) {
   const newBoard = { ...state.board };
   for (const { x, y, tile } of placements) newBoard[key(x, y)] = tile;
 
-  const points = scoreMove(state.board, placements);
+  const { points, kwerzo } = scoreMove(state.board, placements);
   const newBag = [...state.bag];
   const refill = drawTiles(newBag, placements.length);
   const newHand = [...handCopy, ...refill];
@@ -234,7 +235,8 @@ function applyMove(state, userId, placements) {
       consecutivePasses: 0,
       moveHistory: [...(state.moveHistory || []), { type: 'place', userId, placements, points }]
     },
-    points
+    points,
+    kwerzo
   };
 }
 
