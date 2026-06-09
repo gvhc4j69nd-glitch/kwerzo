@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
+import { playBellSound } from '../lib/kwerzoSound';
 
 let nextId = 1;
 const genId = () => `n${Date.now()}_${nextId++}`;
@@ -11,6 +12,7 @@ export default function NotificationCenter({ socket, user, onAcceptGameInvite })
 
   function push(notif) {
     setItems(prev => [{ id: genId(), createdAt: Date.now(), ...notif }, ...prev].slice(0, 30));
+    playBellSound();
   }
   function remove(id) {
     setItems(prev => prev.filter(n => n.id !== id));

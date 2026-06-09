@@ -2,7 +2,7 @@ import React, { useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import KwerzoTile from '../components/KwerzoTile';
 import AddPlayersPanel from '../components/AddPlayersPanel';
-import { playKwerzoSound, prewarmVoices } from '../lib/kwerzoSound';
+import { playKwerzoSound, playBellSound, prewarmVoices, unlockAudio } from '../lib/kwerzoSound';
 import NotificationCenter from '../components/NotificationCenter';
 
 const CELL = 56;
@@ -601,7 +601,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
 
       {/* ════ YOUR TURN OVERLAY ════ */}
       {showTurnOverlay && gameState && (
-        <div className="turn-overlay" onClick={() => setShowTurnOverlay(false)} onTouchStart={() => setShowTurnOverlay(false)}>
+        <div className="turn-overlay" onClick={() => { unlockAudio(); setShowTurnOverlay(false); }} onTouchStart={() => { unlockAudio(); setShowTurnOverlay(false); }}>
           <div className="turn-overlay-msg">
             <div className="turn-overlay-title">⚡ Your Turn!</div>
             <div className="turn-overlay-tap-hint">Tap anywhere to continue</div>
@@ -666,6 +666,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
                 }
                 // Allow tile selection any time (for planning) but skip used slots
                 if (used) return;
+                unlockAudio(); // ensure TTS + AudioContext are unlocked on first tap
                 setSelectedHandIdx(prev => prev === origIdx ? null : origIdx);
                 if (myTurn) setMoveError('');
               }}
