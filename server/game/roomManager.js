@@ -125,8 +125,11 @@ function startGame(roomId, userId) {
   if (room.players.length < 2) return { error: 'Need at least 2 players to start' };
   if (room.status !== 'waiting') return { error: 'Game already started' };
 
-  const playerIds   = room.players.map(p => p.id);
-  room.gameState    = createInitialState(playerIds);
+  // Shuffle player order so the starting player is random each game
+  const shuffledPlayers = [...room.players].sort(() => Math.random() - 0.5);
+  room.players          = shuffledPlayers;
+  const playerIds       = shuffledPlayers.map(p => p.id);
+  room.gameState        = createInitialState(playerIds);
   room.status       = 'playing';
   persist(room);
   return { room };
