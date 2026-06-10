@@ -257,7 +257,10 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       if      (type === 'swap') msg = `${username} swapped ${count} tile${count !== 1 ? 's' : ''}`;
       else if (type === 'pass') msg = `${username} passed`;
       else                      msg = `${username} scored ${points} pt${points !== 1 ? 's' : ''}${kwerzo ? ' — Kwerzo! 🎉' : ''}`;
-      setLastMsg(msg);
+      // Only show the status line for OTHER players' moves/scores —
+      // the local player already sees the result of their own move on the board.
+      const isOwnMove = moverId && String(moverId) === String(user.id);
+      if (!isOwnMove) setLastMsg(msg);
       if (moverId) setLastMoveByPlayer(prev => ({ ...prev, [moverId]: msg }));
       if (kwerzo) playKwerzoSound();
       setBotThinking(null);
