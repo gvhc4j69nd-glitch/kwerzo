@@ -394,6 +394,21 @@
 .swap-hint { font-size: 11px; color: var(--text-muted); }
 .waiting-msg { font-size: 12px; color: var(--text-muted); text-align: center; padding: 8px 0; }
 
+.bot-thinking,
+.mob-wait.bot-thinking {
+  font-size: 11px;
+  color: var(--accent);
+  padding: 6px 8px;
+  background: rgba(245,158,11,0.1);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent);
+  animation: bot-thinking-pulse 1.4s ease-in-out infinite;
+}
+@keyframes bot-thinking-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+
 /* ── Board ── */
 .board-viewport {
   flex: 1;
@@ -416,6 +431,16 @@
 .kwerzo-tile.highlighted {
   border-color: #fbbf24 !important;
   box-shadow: 0 0 0 3px rgba(251,191,36,0.85), 0 0 14px rgba(251,191,36,0.45) !important;
+}
+
+/* Tiles appearing one-by-one as a move is placed */
+.tile-reveal {
+  animation: tile-pop-in 0.28s ease-out;
+}
+@keyframes tile-pop-in {
+  0%   { transform: scale(0.3); opacity: 0; }
+  60%  { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
 }
 .drop-target {
   position: absolute;

@@ -25,6 +25,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
   const [trayOrder,       setTrayOrder]       = useState([]);
   const [dragTrayIdx,     setDragTrayIdx]     = useState(null);
   const [showTurnOverlay, setShowTurnOverlay] = useState(false);
+  const [botThinking,     setBotThinking]     = useState(null); // { botId, username } | null
   const prevMyTurn = useRef(false);
   const transformRef = useRef(null);
   const trayRef = useRef(null);
@@ -137,6 +138,41 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
 
   const lastPlacedKeys = new Set((gameState?.lastPlacements || []).map(p => `${p.x},${p.y}`));
 
+  // ── Reveal newly-placed tiles one-by-one (human or bot moves) ──────────────
+  const [hiddenKeys, setHiddenKeys] = useState(new Set());
+  const [revealedKeys, setRevealedKeys] = useState(new Set());
+  const lastMoveAtRef = useRef(null);
+  const firstStateRef = useRef(true);
+
+  useEffect(() => {
+    if (!gameState) return;
+    const placements = gameState.lastPlacements || [];
+
+    // Don't animate on initial load/reconnect — just record the baseline.
+    if (firstStateRef.current) {
+      firstStateRef.current = false;
+      lastMoveAtRef.current = gameState.lastMoveAt;
+      return;
+    }
+
+    if (placements.length < 1 || gameState.lastMoveAt === lastMoveAtRef.current) return;
+    lastMoveAtRef.current = gameState.lastMoveAt;
+
+    // Reveal in reading order (left-to-right, top-to-bottom)
+    const sorted = [...placements].sort((a, b) => (a.y - b.y) || (a.x - b.x));
+    const keys = sorted.map(p => `${p.x},${p.y}`);
+
+    setHiddenKeys(new Set(keys));
+    setRevealedKeys(new Set());
+
+    keys.forEach((k, i) => {
+      setTimeout(() => {
+        setHiddenKeys(prev => { const next = new Set(prev); next.delete(k); return next; });
+        setRevealedKeys(prev => new Set(prev).add(k));
+      }, (i + 1) * 220);
+    });
+  }, [gameState?.lastMoveAt]);
+
   // Rebuild tray order when hand changes — preserve user's arrangement,
   // match surviving tiles by shape+color, fill played-tile slots with new draws.
   const prevHandRef2 = useRef(null);
@@ -209,6 +245,11 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       setSwapMode(false);
       setSwapSelection([]);
       setMoveError('');
+      setBotThinking(null);
+    });
+    socket.on('bot_thinking', ({ roomId: id, botId, username }) => {
+      if (id !== roomId) return;
+      setBotThinking({ botId, username });
     });
     socket.on('move_made', ({ roomId: id, userId: moverId, username, points, type, count, kwerzo }) => {
       if (id !== roomId) return;
@@ -219,14 +260,16 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       setLastMsg(msg);
       if (moverId) setLastMoveByPlayer(prev => ({ ...prev, [moverId]: msg }));
       if (kwerzo) playKwerzoSound();
+      setBotThinking(null);
     });
-    socket.on('move_error', (err) => { setMoveError(err); setStaged([]); });
-    socket.on('game_over',  (data) => setGameOver(data));
+    socket.on('move_error', (err) => { setMoveError(err); setStaged([]); setBotThinking(null); });
+    socket.on('game_over',  (data) => { setGameOver(data); setBotThinking(null); });
     socket.on('room_deleted', ({ roomId: id }) => { if (id === roomId) onLeave(); });
     return () => {
       socket.off('room_update');
       socket.off('game_started');
       socket.off('game_update');
+      socket.off('bot_thinking');
       socket.off('move_made');
       socket.off('move_error');
       socket.off('game_over');
@@ -409,7 +452,8 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
           </div>
 
           {gameState && <div className="bag-count">🎒 {gameState.bag} tile{gameState.bag !== 1 ? 's' : ''}</div>}
-          {lastMsg   && <div className="last-msg">{lastMsg}</div>}
+          {botThinking && <div className="bot-thinking">🤔 {botThinking.username} is thinking…</div>}
+          {!botThinking && lastMsg   && <div className="last-msg">{lastMsg}</div>}
           {moveError && <div className="move-error">{moveError}</div>}
 
           <div className="game-actions">
@@ -423,7 +467,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
                   ? <button className="btn-primary" onClick={() => socket.emit('start_game', { roomId })}>Start Game</button>
                   : <div className="waiting-msg">Waiting for host…</div>
             )}
-            {gameState && !myTurn && (
+            {gameState && !myTurn && !botThinking && (
               <div className="waiting-msg">Waiting for {currentTurnPlayer?.username}…</div>
             )}
             {myTurn && !swapMode && <>
@@ -489,15 +533,23 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
 
                     {Object.entries(displayBoard).map(([k, tile]) => {
                       if (tile._staged) return null;
+                      if (hiddenKeys.has(k)) return null; // not yet revealed
                       const [x, y] = k.split(',').map(Number);
                       const isNew = lastPlacedKeys.has(k);
+                      const justRevealed = revealedKeys.has(k);
                       return (
                         <div
                           key={`tile-${k}`}
                           className="board-cell-wrapper"
                           style={{ left: (x - minX) * CELL, top: (y - minY) * CELL }}
                         >
-                          <KwerzoTile shape={tile.shape} color={tile.color} size={CELL} highlighted={isNew} />
+                          <KwerzoTile
+                            shape={tile.shape}
+                            color={tile.color}
+                            size={CELL}
+                            highlighted={isNew}
+                            className={justRevealed ? 'tile-reveal' : ''}
+                          />
                         </div>
                       );
                     })}
@@ -577,8 +629,9 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       {gameState && (
         <div className="mob-status">
           {moveError && <span className="mob-err">{moveError}</span>}
-          {!moveError && lastMsg && <span className="mob-ok">{lastMsg}</span>}
-          {!moveError && !lastMsg && !myTurn && (
+          {!moveError && botThinking && <span className="mob-wait bot-thinking">🤔 {botThinking.username} is thinking…</span>}
+          {!moveError && !botThinking && lastMsg && <span className="mob-ok">{lastMsg}</span>}
+          {!moveError && !botThinking && !lastMsg && !myTurn && (
             <span className="mob-wait">Waiting for {currentTurnPlayer?.username}…</span>
           )}
         </div>

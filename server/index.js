@@ -130,10 +130,26 @@ function handleGameOver(room) {
 // Per-room guard so concurrent scheduleBotMoves calls don't double-fire
 const botTimers = new Map();
 
+// Bots "think" for this long before placing — gives the UI time to show
+// a "Bot thinking…" message and lets humans see the previous move first.
+const BOT_THINK_DELAY = 3000;
+
 // Trigger bot moves, chaining until a human's turn (or game over)
-function scheduleBotMoves(roomId, delayMs) {
+function scheduleBotMoves(roomId) {
   // If a timer is already pending for this room, don't schedule another
   if (botTimers.has(roomId)) return;
+
+  const room = roomManager.getRoom(roomId);
+  if (!room || room.status !== 'playing') return;
+
+  const thinkingBot = roomManager.getCurrentBot(room);
+  if (!thinkingBot) return;
+
+  io.to(roomId).emit('bot_thinking', {
+    roomId,
+    botId: thinkingBot.id,
+    username: thinkingBot.username,
+  });
 
   const t = setTimeout(() => {
     botTimers.delete(roomId);
@@ -169,8 +185,8 @@ function scheduleBotMoves(roomId, delayMs) {
 
     // If the next player is also a bot, chain another move
     const nextBot = roomManager.getCurrentBot(updatedRoom);
-    if (nextBot) scheduleBotMoves(roomId, 1200);
-  }, delayMs);
+    if (nextBot) scheduleBotMoves(roomId);
+  }, BOT_THINK_DELAY);
 
   botTimers.set(roomId, t);
 }
@@ -211,7 +227,7 @@ io.on('connection', (socket) => {
     // the bot was supposed to move), kick off the bot chain so it isn't stuck.
     if (activeRoom.status === 'playing') {
       const currentBot = roomManager.getCurrentBot(activeRoom);
-      if (currentBot) scheduleBotMoves(activeRoom.id, 800);
+      if (currentBot) scheduleBotMoves(activeRoom.id);
     }
   }
 
@@ -324,7 +340,7 @@ io.on('connection', (socket) => {
     broadcastGameState(result.room);
     io.to(roomId).emit('game_started', { roomId });
     // If first player is a bot, kick off bot chain
-    scheduleBotMoves(roomId, 1000);
+    scheduleBotMoves(roomId);
   });
 
   socket.on('place_tiles', ({ roomId, placements }) => {
@@ -342,7 +358,7 @@ io.on('connection', (socket) => {
         points: moveResult.points,
         kwerzo: moveResult.kwerzo || false,
       });
-      scheduleBotMoves(roomId, 900);
+      scheduleBotMoves(roomId);
     }
   });
 
@@ -351,7 +367,7 @@ io.on('connection', (socket) => {
     if (result.error) { socket.emit('move_error', result.error); return; }
     broadcastGameState(result.room);
     io.to(roomId).emit('move_made', { roomId, userId, username, type: 'swap', count: tiles.length });
-    scheduleBotMoves(roomId, 900);
+    scheduleBotMoves(roomId);
   });
 
   socket.on('pass_turn', ({ roomId }) => {
@@ -362,7 +378,7 @@ io.on('connection', (socket) => {
     } else {
       broadcastGameState(result.room);
       io.to(roomId).emit('move_made', { roomId, userId, username, type: 'pass' });
-      scheduleBotMoves(roomId, 900);
+      scheduleBotMoves(roomId);
     }
   });
 
