@@ -50,6 +50,15 @@
   background: radial-gradient(ellipse at 30% 40%, #1a0a3a 0%, #0f0f1a 70%);
 }
 
+.auth-page-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  max-width: 400px;
+}
+
 .auth-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -219,6 +228,7 @@
 }
 
 .lobby-actions { margin-bottom: 20px; }
+.lobby-demo-wrap { display: flex; justify-content: center; margin-bottom: 24px; }
 
 .rooms-list { display: flex; flex-direction: column; gap: 10px; }
 
@@ -431,6 +441,88 @@
 .kwerzo-tile.highlighted {
   border-color: #fbbf24 !important;
   box-shadow: 0 0 0 3px rgba(251,191,36,0.85), 0 0 14px rgba(251,191,36,0.45) !important;
+}
+
+/* ── Kwerzo Demo (animated illustration on home/lobby pages) ── */
+.kwerzo-demo {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px 20px 14px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.35);
+}
+.kwerzo-demo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.kwerzo-demo-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.kwerzo-demo-turn {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  background: rgba(124,58,237,0.12);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.kwerzo-demo-board {
+  position: relative;
+  margin: 0 auto;
+  background:
+    radial-gradient(ellipse at 30% 30%, rgba(124,58,237,0.07) 0%, transparent 60%),
+    var(--bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.kwerzo-demo-cell {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+.kwerzo-demo-tile-wrap {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.kwerzo-demo-score {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(124,58,237,0.92);
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  animation: demo-score-pop 0.4s ease-out;
+  white-space: nowrap;
+}
+.kwerzo-demo-score.kwerzo {
+  background: linear-gradient(135deg, #f59e0b, #e91e63);
+  font-size: 14px;
+}
+@keyframes demo-score-pop {
+  0%   { transform: scale(0.4) translateY(6px); opacity: 0; }
+  60%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.kwerzo-demo-caption {
+  margin-top: 12px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  text-align: center;
+  min-height: 32px;
+  line-height: 1.4;
 }
 
 /* Tiles appearing one-by-one as a move is placed */

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../lib/api';
+import KwerzoDemo from '../components/KwerzoDemo';
 
 function EyeIcon({ open }) {
   return open ? (
@@ -48,6 +49,8 @@ export default function AuthPage({ onAuth }) {
 
   return (
     <div className="auth-page">
+      <div className="auth-page-stack">
+      <KwerzoDemo />
       <div className="auth-card">
         <div className="auth-logo">
           <span className="logo-k">K</span>wer<span className="logo-z">z</span>o
@@ -112,6 +115,7 @@ export default function AuthPage({ onAuth }) {
             <span key={i} className="deco-shape" style={{ animationDelay: `${i * 0.3}s` }}>{s}</span>
           ))}
         </div>
+      </div>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import FriendsPanel from '../components/FriendsPanel';
 import NotificationCenter from '../components/NotificationCenter';
+import KwerzoDemo from '../components/KwerzoDemo';
 
 export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
   const [rooms, setRooms] = useState([]);
@@ -83,6 +84,9 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
 
       {tab === 'rooms' && (
         <div className="lobby-content">
+          <div className="lobby-demo-wrap">
+            <KwerzoDemo />
+          </div>
           <div className="lobby-actions">
             <button className="btn-primary" onClick={createRoom} disabled={creating}>
               + Create Room
