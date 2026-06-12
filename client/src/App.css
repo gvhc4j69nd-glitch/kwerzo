@@ -525,6 +525,33 @@
   line-height: 1.4;
 }
 
+/* Live "potential score" bubble shown over staged tiles before placing */
+.score-preview-popup {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(124,58,237,0.6);
+  color: #fff;
+  font-weight: 800;
+  font-size: 16px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 6;
+  backdrop-filter: blur(2px);
+  animation: score-preview-pulse 1.4s ease-in-out infinite;
+}
+.score-preview-popup.kwerzo {
+  background: linear-gradient(135deg, rgba(245,158,11,0.85), rgba(233,30,99,0.85));
+  border-color: transparent;
+  font-size: 17px;
+}
+@keyframes score-preview-pulse {
+  0%, 100% { transform: translate(-50%, -100%) scale(1); }
+  50%      { transform: translate(-50%, -100%) scale(1.08); }
+}
+
 /* Floating score popup shown over the board after the local player places tiles */
 .board-score-popup {
   position: absolute;

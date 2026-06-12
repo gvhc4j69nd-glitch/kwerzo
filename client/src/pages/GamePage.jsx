@@ -3,6 +3,7 @@ import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import KwerzoTile from '../components/KwerzoTile';
 import AddPlayersPanel from '../components/AddPlayersPanel';
 import { playKwerzoSound, playBellSound, prewarmVoices, unlockAudio } from '../lib/kwerzoSound';
+import { previewScore } from '../lib/kwerzoScoring';
 import NotificationCenter from '../components/NotificationCenter';
 
 const CELL = 56;
@@ -378,6 +379,9 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
 
   const validDropCells    = getValidDropCells();
 
+  // Live "potential score" preview for the tiles currently staged for placement
+  const scorePreview = staged.length > 0 ? previewScore(gameState?.board || {}, staged) : null;
+
   // Board bounds — sized to fit placed tiles + drop targets + padding
   const allBoardKeys = new Set([...Object.keys(displayBoard), ...validDropCells]);
   let minX = -PAD, maxX = PAD, minY = -PAD, maxY = PAD;
@@ -550,6 +554,21 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
                         <KwerzoTile shape={tile.shape} color={tile.color} size={CELL} staged />
                       </div>
                     ))}
+
+                    {scorePreview && (() => {
+                      const xs = staged.map(p => p.x);
+                      const ys = staged.map(p => p.y);
+                      const cx = (Math.min(...xs) + Math.max(...xs) + 1) / 2;
+                      const top = Math.min(...ys);
+                      return (
+                        <div
+                          className={`score-preview-popup${scorePreview.kwerzo ? ' kwerzo' : ''}`}
+                          style={{ left: (cx - minX) * CELL, top: (top - minY) * CELL }}
+                        >
+                          {scorePreview.kwerzo ? `Kwerzo! +${scorePreview.points}` : `+${scorePreview.points}`}
+                        </div>
+                      );
+                    })()}
 
                     {Object.entries(displayBoard).map(([k, tile]) => {
                       if (tile._staged) return null;
