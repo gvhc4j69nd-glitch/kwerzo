@@ -22,6 +22,7 @@ router.get('/', authMiddleware, async (req, res) => {
   // ── Dev / in-memory mode ─────────────────────────────────────────────────
   if (db.devMode) {
     const top = memDb.users.map((u, i) => ({
+      user_id:      u.id,
       username:     u.username,
       wins:         0,
       losses:       0,
@@ -31,6 +32,7 @@ router.get('/', authMiddleware, async (req, res) => {
       rank:         i + 1,
     }));
     const topBots = memDb.users.map((u, i) => ({
+      user_id:          u.id,
       username:         u.username,
       bot_wins:         0,
       bot_losses:       0,
@@ -49,6 +51,7 @@ router.get('/', authMiddleware, async (req, res) => {
     // Human-only ELO leaderboard
     const { rows: top } = await db.pool.query(`
       SELECT
+        u.id AS user_id,
         u.username,
         COALESCE(l.wins,         0) AS wins,
         COALESCE(l.losses,       0) AS losses,
@@ -89,6 +92,7 @@ router.get('/', authMiddleware, async (req, res) => {
     // "Vs Bots" leaderboard — rating weighted by bot difficulty
     const { rows: topBots } = await db.pool.query(`
       SELECT
+        u.id AS user_id,
         u.username,
         COALESCE(l.bot_wins,         0) AS bot_wins,
         COALESCE(l.bot_losses,       0) AS bot_losses,

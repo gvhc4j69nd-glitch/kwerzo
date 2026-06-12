@@ -9,6 +9,9 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
   const [leaderboard, setLeaderboard] = useState({ top: [], me: null, topBots: [], meBots: null });
   const [lbMode, setLbMode] = useState('human');
   const [lbError, setLbError] = useState(null);
+  const [friendIds, setFriendIds] = useState(new Set());
+  const [outgoingNames, setOutgoingNames] = useState(new Set());
+  const [friendPending, setFriendPending] = useState({}); // username -> 'sending' | 'sent' | 'error'
   const [tab, setTab] = useState('rooms');
   const [creating, setCreating] = useState(false);
 
@@ -41,8 +44,39 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
       api.leaderboard()
         .then(data => { setLeaderboard(data); setLbError(null); })
         .catch(err => setLbError(err.message || 'Failed to load leaderboard'));
+      api.getFriends()
+        .then(data => {
+          setFriendIds(new Set((data.friends || []).map(f => f.userId)));
+          setOutgoingNames(new Set((data.outgoing || []).map(o => o.username.toLowerCase())));
+        })
+        .catch(() => {});
     }
   }, [tab]);
+
+  function addFriend(username) {
+    setFriendPending(prev => ({ ...prev, [username]: 'sending' }));
+    api.sendFriendRequest(username)
+      .then(() => setFriendPending(prev => ({ ...prev, [username]: 'sent' })))
+      .catch(() => setFriendPending(prev => ({ ...prev, [username]: 'error' })));
+  }
+
+  function renderFriendCell(username, userId) {
+    if (username === user.username) return null;
+    if (friendIds.has(userId)) return <span className="friend-tag">friends</span>;
+    const state = friendPending[username];
+    if (outgoingNames.has(username.toLowerCase()) || state === 'sent') {
+      return <span className="friend-tag">sent</span>;
+    }
+    return (
+      <button
+        className="btn-secondary btn-small"
+        disabled={state === 'sending'}
+        onClick={() => addFriend(username)}
+      >
+        + Add
+      </button>
+    );
+  }
 
   function createRoom() {
     if (creating) return;
@@ -171,7 +205,7 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
               )}
               <table className="leaderboard-table">
                 <thead>
-                  <tr><th>#</th><th>Player</th><th>ELO</th><th>W</th><th>L</th><th>Score</th></tr>
+                  <tr><th>#</th><th>Player</th><th>ELO</th><th>W</th><th>L</th><th>Score</th><th></th></tr>
                 </thead>
                 <tbody>
                   {leaderboard.top.map((row, i) => (
@@ -182,6 +216,7 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
                       <td>{row.wins}</td>
                       <td>{row.losses}</td>
                       <td>{row.total_score}</td>
+                      <td>{renderFriendCell(row.username, row.user_id)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -204,7 +239,7 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
               )}
               <table className="leaderboard-table">
                 <thead>
-                  <tr><th>#</th><th>Player</th><th>Rating</th><th>W</th><th>L</th><th>Score</th></tr>
+                  <tr><th>#</th><th>Player</th><th>Rating</th><th>W</th><th>L</th><th>Score</th><th></th></tr>
                 </thead>
                 <tbody>
                   {leaderboard.topBots.map((row, i) => (
@@ -215,6 +250,7 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
                       <td>{row.bot_wins}</td>
                       <td>{row.bot_losses}</td>
                       <td>{row.bot_total_score}</td>
+                      <td>{renderFriendCell(row.username, row.user_id)}</td>
                     </tr>
                   ))}
                 </tbody>
