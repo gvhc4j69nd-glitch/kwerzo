@@ -84,6 +84,28 @@ async function initDb() {
       'total_score column'
     );
 
+    // ── Separate "vs bots" leaderboard (weighted by bot difficulty) ──────────
+    await runDDL(
+      `ALTER TABLE kwerzo_leaderboard ADD COLUMN IF NOT EXISTS bot_rating       INTEGER DEFAULT 1000`,
+      'bot_rating column'
+    );
+    await runDDL(
+      `ALTER TABLE kwerzo_leaderboard ADD COLUMN IF NOT EXISTS bot_wins         INTEGER DEFAULT 0`,
+      'bot_wins column'
+    );
+    await runDDL(
+      `ALTER TABLE kwerzo_leaderboard ADD COLUMN IF NOT EXISTS bot_losses       INTEGER DEFAULT 0`,
+      'bot_losses column'
+    );
+    await runDDL(
+      `ALTER TABLE kwerzo_leaderboard ADD COLUMN IF NOT EXISTS bot_games_played INTEGER DEFAULT 0`,
+      'bot_games_played column'
+    );
+    await runDDL(
+      `ALTER TABLE kwerzo_leaderboard ADD COLUMN IF NOT EXISTS bot_total_score  INTEGER DEFAULT 0`,
+      'bot_total_score column'
+    );
+
     // Backfill: give every existing user a leaderboard row
     await runDDL(`
       INSERT INTO kwerzo_leaderboard (user_id)

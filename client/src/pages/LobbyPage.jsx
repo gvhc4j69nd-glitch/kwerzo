@@ -6,7 +6,8 @@ import KwerzoDemo from '../components/KwerzoDemo';
 
 export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
   const [rooms, setRooms] = useState([]);
-  const [leaderboard, setLeaderboard] = useState({ top: [], me: null });
+  const [leaderboard, setLeaderboard] = useState({ top: [], me: null, topBots: [], meBots: null });
+  const [lbMode, setLbMode] = useState('human');
   const [lbError, setLbError] = useState(null);
   const [tab, setTab] = useState('rooms');
   const [creating, setCreating] = useState(false);
@@ -140,34 +141,86 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
           {lbError && (
             <div className="error-state">⚠️ {lbError}</div>
           )}
-          {leaderboard.me && (
-            <div className="my-stats">
-              <h3>Your Stats</h3>
-              <div className="stats-grid">
-                <div className="stat"><span>{leaderboard.me.wins}</span>Wins</div>
-                <div className="stat"><span>{leaderboard.me.losses}</span>Losses</div>
-                <div className="stat"><span>{leaderboard.me.games_played}</span>Games</div>
-                <div className="stat"><span>{leaderboard.me.elo_rating}</span>ELO</div>
-              </div>
-            </div>
+          <div className="lb-mode-toggle">
+            <button
+              className={lbMode === 'human' ? 'active' : ''}
+              onClick={() => setLbMode('human')}
+            >
+              Human ELO
+            </button>
+            <button
+              className={lbMode === 'bots' ? 'active' : ''}
+              onClick={() => setLbMode('bots')}
+            >
+              vs Bots
+            </button>
+          </div>
+
+          {lbMode === 'human' && (
+            <>
+              {leaderboard.me && (
+                <div className="my-stats">
+                  <h3>Your Stats</h3>
+                  <div className="stats-grid">
+                    <div className="stat"><span>{leaderboard.me.wins}</span>Wins</div>
+                    <div className="stat"><span>{leaderboard.me.losses}</span>Losses</div>
+                    <div className="stat"><span>{leaderboard.me.games_played}</span>Games</div>
+                    <div className="stat"><span>{leaderboard.me.elo_rating}</span>ELO</div>
+                  </div>
+                </div>
+              )}
+              <table className="leaderboard-table">
+                <thead>
+                  <tr><th>#</th><th>Player</th><th>ELO</th><th>W</th><th>L</th><th>Score</th></tr>
+                </thead>
+                <tbody>
+                  {leaderboard.top.map((row, i) => (
+                    <tr key={row.username} className={row.username === user.username ? 'highlight' : ''}>
+                      <td>{i + 1}</td>
+                      <td>{row.username}</td>
+                      <td>{row.elo_rating}</td>
+                      <td>{row.wins}</td>
+                      <td>{row.losses}</td>
+                      <td>{row.total_score}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
           )}
-          <table className="leaderboard-table">
-            <thead>
-              <tr><th>#</th><th>Player</th><th>ELO</th><th>W</th><th>L</th><th>Score</th></tr>
-            </thead>
-            <tbody>
-              {leaderboard.top.map((row, i) => (
-                <tr key={row.username} className={row.username === user.username ? 'highlight' : ''}>
-                  <td>{i + 1}</td>
-                  <td>{row.username}</td>
-                  <td>{row.elo_rating}</td>
-                  <td>{row.wins}</td>
-                  <td>{row.losses}</td>
-                  <td>{row.total_score}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+          {lbMode === 'bots' && (
+            <>
+              {leaderboard.meBots && (
+                <div className="my-stats">
+                  <h3>Your Stats (vs Bots)</h3>
+                  <div className="stats-grid">
+                    <div className="stat"><span>{leaderboard.meBots.bot_wins}</span>Wins</div>
+                    <div className="stat"><span>{leaderboard.meBots.bot_losses}</span>Losses</div>
+                    <div className="stat"><span>{leaderboard.meBots.bot_games_played}</span>Games</div>
+                    <div className="stat"><span>{leaderboard.meBots.bot_rating}</span>Rating</div>
+                  </div>
+                </div>
+              )}
+              <table className="leaderboard-table">
+                <thead>
+                  <tr><th>#</th><th>Player</th><th>Rating</th><th>W</th><th>L</th><th>Score</th></tr>
+                </thead>
+                <tbody>
+                  {leaderboard.topBots.map((row, i) => (
+                    <tr key={row.username} className={row.username === user.username ? 'highlight' : ''}>
+                      <td>{i + 1}</td>
+                      <td>{row.username}</td>
+                      <td>{row.bot_rating}</td>
+                      <td>{row.bot_wins}</td>
+                      <td>{row.bot_losses}</td>
+                      <td>{row.bot_total_score}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
         </div>
       )}
 

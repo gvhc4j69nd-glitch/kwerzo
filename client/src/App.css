@@ -294,6 +294,29 @@
 .stat span { display: block; font-size: 24px; font-weight: 700; color: var(--primary); }
 .stat { font-size: 12px; color: var(--text-muted); }
 
+.lb-mode-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.lb-mode-toggle button {
+  flex: 1;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.lb-mode-toggle button:hover:not(.active) { color: var(--text); }
+.lb-mode-toggle button.active {
+  color: #fff;
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
 .leaderboard-table {
   width: 100%;
   border-collapse: collapse;

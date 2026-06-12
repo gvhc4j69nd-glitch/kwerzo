@@ -9,7 +9,7 @@ const jwt = require('jsonwebtoken');
 
 const { initDb } = require('./db/schema');
 const authRouter = require('./routes/auth');
-const { router: leaderboardRouter, updateStats } = require('./routes/leaderboard');
+const { router: leaderboardRouter, updateStats, BOT_DIFFICULTY_WEIGHT } = require('./routes/leaderboard');
 const friendsRouter = require('./routes/friends');
 const roomManager = require('./game/roomManager');
 const presence = require('./presence');
@@ -122,8 +122,13 @@ function handleGameOver(room) {
 
   const realPlayerIds = room.players.filter(p => !p.isBot).map(p => p.id);
   if (realPlayerIds.length > 0) {
+    const botPlayers = room.players.filter(p => p.isBot);
+    const vsBots = botPlayers.length > 0;
+    const botWeight = vsBots
+      ? Math.max(...botPlayers.map(b => BOT_DIFFICULTY_WEIGHT[b.difficulty] ?? 1))
+      : 1;
     updateStats(winners.filter(w => !room.players.find(p=>p.id===w.id)?.isBot).map(w=>w.id),
-                realPlayerIds, scores).catch(console.error);
+                realPlayerIds, scores, { vsBots, botWeight }).catch(console.error);
   }
 }
 
