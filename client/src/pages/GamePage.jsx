@@ -18,6 +18,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
   const [swapSelection,   setSwapSelection]   = useState([]);
   const [lastMsg,         setLastMsg]         = useState('');
   const [lastMoveByPlayer, setLastMoveByPlayer] = useState({});
+  const [lastScoreByPlayer, setLastScoreByPlayer] = useState({}); // { [playerId]: { points, kwerzo } }
   const [moveError,       setMoveError]       = useState('');
   const [gameOver,        setGameOver]        = useState(null);
   const [isMobile,        setIsMobile]        = useState(
@@ -269,6 +270,9 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       // the local player already sees the result of their own move on the board.
       if (!isOwnMove) setLastMsg(msg);
       if (moverId) setLastMoveByPlayer(prev => ({ ...prev, [moverId]: msg }));
+      if (moverId && type === undefined && typeof points === 'number') {
+        setLastScoreByPlayer(prev => ({ ...prev, [moverId]: { points, kwerzo: !!kwerzo } }));
+      }
       if (kwerzo) playKwerzoSound();
       setBotThinking(null);
 
@@ -405,14 +409,24 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
         <div className="game-over-card">
           <h2>Game Over!</h2>
           <div className="final-scores">
-            {[...gameOver.players].sort((a, b) => b.score - a.score).map((p, i) => (
-              <div key={p.id} className={`score-row ${gameOver.winners.includes(p.id) ? 'winner' : ''}`}>
-                <span className="rank">{i + 1}</span>
-                <span className="pname">{p.username}</span>
-                <span className="pscore">{p.score} pts</span>
-                {gameOver.winners.includes(p.id) && <span className="crown">👑</span>}
-              </div>
-            ))}
+            {[...gameOver.players].sort((a, b) => b.score - a.score).map((p, i) => {
+              const lastScore = lastScoreByPlayer[p.id];
+              return (
+                <div key={p.id} className={`score-row ${gameOver.winners.includes(p.id) ? 'winner' : ''}`}>
+                  <span className="rank">{i + 1}</span>
+                  <div className="pname-col">
+                    <span className="pname">{p.username}</span>
+                    {lastScore && (
+                      <span className="plast-score">
+                        Last move: +{lastScore.points}{lastScore.kwerzo ? ' — Kwerzo! 🎉' : ''}
+                      </span>
+                    )}
+                  </div>
+                  <span className="pscore">{p.score} pts</span>
+                  {gameOver.winners.includes(p.id) && <span className="crown">👑</span>}
+                </div>
+              );
+            })}
           </div>
           <button className="btn-primary" onClick={handleLeave}>Back to Lobby</button>
         </div>
