@@ -26,9 +26,14 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
   const [dragTrayIdx,     setDragTrayIdx]     = useState(null);
   const [showTurnOverlay, setShowTurnOverlay] = useState(false);
   const [botThinking,     setBotThinking]     = useState(null); // { botId, username } | null
+  const [boardScorePopup, setBoardScorePopup] = useState(null); // { points, kwerzo, placements } | null
   const prevMyTurn = useRef(false);
   const transformRef = useRef(null);
   const trayRef = useRef(null);
+  const gameStateRef = useRef(null);
+  const scorePopupTimerRef = useRef(null);
+
+  useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
 
   useEffect(() => {
     const update = () => setIsMobile(window.innerWidth < 1024);
@@ -253,17 +258,28 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
     });
     socket.on('move_made', ({ roomId: id, userId: moverId, username, points, type, count, kwerzo }) => {
       if (id !== roomId) return;
+      const isOwnMove = moverId && String(moverId) === String(user.id);
+      const who = isOwnMove ? 'You' : username;
       let msg;
-      if      (type === 'swap') msg = `${username} swapped ${count} tile${count !== 1 ? 's' : ''}`;
-      else if (type === 'pass') msg = `${username} passed`;
-      else                      msg = `${username} scored ${points} pt${points !== 1 ? 's' : ''}${kwerzo ? ' — Kwerzo! 🎉' : ''}`;
+      if      (type === 'swap') msg = `${who} swapped ${count} tile${count !== 1 ? 's' : ''}`;
+      else if (type === 'pass') msg = `${who} passed`;
+      else                      msg = `${who} scored ${points} pt${points !== 1 ? 's' : ''}${kwerzo ? ' — Kwerzo! 🎉' : ''}`;
       // Only show the status line for OTHER players' moves/scores —
       // the local player already sees the result of their own move on the board.
-      const isOwnMove = moverId && String(moverId) === String(user.id);
       if (!isOwnMove) setLastMsg(msg);
       if (moverId) setLastMoveByPlayer(prev => ({ ...prev, [moverId]: msg }));
       if (kwerzo) playKwerzoSound();
       setBotThinking(null);
+
+      // Show a floating score popup over the board where the local player just placed tiles
+      if (isOwnMove && type === undefined && typeof points === 'number') {
+        const placements = gameStateRef.current?.lastPlacements || [];
+        if (placements.length) {
+          if (scorePopupTimerRef.current) clearTimeout(scorePopupTimerRef.current);
+          setBoardScorePopup({ points, kwerzo: !!kwerzo, placements });
+          scorePopupTimerRef.current = setTimeout(() => setBoardScorePopup(null), 2200);
+        }
+      }
     });
     socket.on('move_error', (err) => { setMoveError(err); setStaged([]); setBotThinking(null); });
     socket.on('game_over',  (data) => { setGameOver(data); setBotThinking(null); });
@@ -277,6 +293,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       socket.off('move_error');
       socket.off('game_over');
       socket.off('room_deleted');
+      if (scorePopupTimerRef.current) clearTimeout(scorePopupTimerRef.current);
     };
   }, [socket]);
 
@@ -557,6 +574,21 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
                       );
                     })}
 
+                    {boardScorePopup && (() => {
+                      const xs = boardScorePopup.placements.map(p => p.x);
+                      const ys = boardScorePopup.placements.map(p => p.y);
+                      const cx = (Math.min(...xs) + Math.max(...xs) + 1) / 2;
+                      const top = Math.min(...ys);
+                      return (
+                        <div
+                          className={`board-score-popup${boardScorePopup.kwerzo ? ' kwerzo' : ''}`}
+                          style={{ left: (cx - minX) * CELL, top: (top - minY) * CELL }}
+                        >
+                          {boardScorePopup.kwerzo ? `Kwerzo! +${boardScorePopup.points}` : `+${boardScorePopup.points}`}
+                        </div>
+                      );
+                    })()}
+
                   </div>
                 </TransformComponent>
 
@@ -661,10 +693,10 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
           <div className="turn-overlay-msg">
             <div className="turn-overlay-title">⚡ Your Turn!</div>
             <div className="turn-overlay-tap-hint">Tap anywhere to continue</div>
-            {room?.players.filter(rp => rp.id !== user.id).some(rp => lastMoveByPlayer[rp.id]) && (
+            {room?.players.some(rp => lastMoveByPlayer[rp.id]) && (
               <div className="turn-overlay-tiles">
                 <div className="turn-overlay-tiles-label">Last moves:</div>
-                {room.players.filter(rp => rp.id !== user.id).map(rp => (
+                {room.players.map(rp => (
                   lastMoveByPlayer[rp.id] && (
                     <div key={rp.id} className="turn-overlay-tile-row">
                       <span>{lastMoveByPlayer[rp.id]}</span>
