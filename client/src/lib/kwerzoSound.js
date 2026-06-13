@@ -66,6 +66,23 @@ export function unlockAudio() {
   }
 }
 
+// Many sounds (notification bell, Kwerzo fanfare for spectating players) are
+// triggered from socket events with no direct user gesture in the same call
+// stack, so the per-page "Your Turn" tap isn't enough — a player who never
+// dismisses that overlay never unlocks audio. Unlock on the very first
+// tap/click anywhere in the app instead.
+if (typeof document !== 'undefined') {
+  const unlockOnce = () => {
+    unlockAudio();
+    document.removeEventListener('pointerdown', unlockOnce);
+    document.removeEventListener('touchstart', unlockOnce);
+    document.removeEventListener('click', unlockOnce);
+  };
+  document.addEventListener('pointerdown', unlockOnce, { once: true });
+  document.addEventListener('touchstart', unlockOnce, { once: true });
+  document.addEventListener('click', unlockOnce, { once: true });
+}
+
 // ── Kwerzo! voice shout ─────────────────────────────────────────────────────
 
 export function playKwerzoSound() {
