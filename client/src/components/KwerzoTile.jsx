@@ -1,12 +1,12 @@
 import React from 'react';
 
 const COLOR_VALUES = {
-  ruby:     '#e8dcc0', // parchment ivory
-  amber:    '#d4a017', // antique gold
-  jade:     '#6b8e5a', // verdigris
-  sapphire: '#5a7d8c', // oxidized steel
-  amethyst: '#8a5a6e', // faded burgundy
-  coral:    '#c1623a'  // burnt copper
+  ruby:     '#F5F5F5',
+  amber:    '#FB8C00',
+  jade:     '#43A047',
+  sapphire: '#1E88E5',
+  amethyst: '#8E24AA',
+  coral:    '#E91E63'
 };
 
 function Moon({ fill }) {

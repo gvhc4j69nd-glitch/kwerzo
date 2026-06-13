@@ -1,6 +1,6 @@
 /* ── Logo ── */
-.logo-z { color: #c9a227; font-weight: 900; }
-.logo-k { color: #6b9aa8; font-weight: 900; }
+.logo-z { color: #f59e0b; font-weight: 900; }
+.logo-k { color: #7c3aed; font-weight: 900; }
 
 /* ── Buttons ── */
 .btn-primary {
@@ -54,7 +54,7 @@
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: radial-gradient(ellipse at 30% 40%, #3a2a18 0%, #1c140d 70%);
+  background: radial-gradient(ellipse at 30% 40%, #1a0a3a 0%, #0f0f1a 70%);
 }
 
 .auth-page-stack {
@@ -154,12 +154,12 @@
 .pw-toggle:hover { color: var(--text); }
 
 .auth-error {
-  background: #3a1810;
-  color: #e2876a;
+  background: #3a1a1a;
+  color: #ff6b6b;
   border-radius: 6px;
   padding: 10px 14px;
   font-size: 14px;
-  border-left: 3px solid #e2876a;
+  border-left: 3px solid #ff6b6b;
 }
 
 .auth-shapes {
@@ -259,23 +259,23 @@
   letter-spacing: 0.5px;
   padding: 2px 6px;
   border-radius: 10px;
-  background: rgba(201,162,39,0.2);
+  background: rgba(124,58,237,0.2);
   color: var(--primary);
-  border: 1px solid rgba(201,162,39,0.4);
+  border: 1px solid rgba(124,58,237,0.4);
 }
 .btn-danger {
-  color: #e2876a !important;
-  border-color: rgba(193,84,58,0.4) !important;
+  color: #ff6b6b !important;
+  border-color: rgba(229,57,53,0.4) !important;
 }
-.btn-danger:hover { background: rgba(193,84,58,0.12) !important; border-color: #e2876a !important; }
+.btn-danger:hover { background: rgba(229,57,53,0.12) !important; border-color: #ff6b6b !important; }
 .room-players { color: var(--text-muted); font-size: 13px; margin-top: 4px; display: block; }
 
 .error-state {
-  background: rgba(193,84,58,0.1);
-  border: 1px solid #c1543a;
+  background: rgba(229,57,53,0.1);
+  border: 1px solid var(--ruby);
   border-radius: 8px;
   padding: 12px 16px;
-  color: #e2876a;
+  color: #ff6b6b;
   font-size: 13px;
   margin-bottom: 12px;
 }
@@ -341,8 +341,8 @@
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
 }
-.leaderboard-table tr.highlight { background: rgba(201,162,39,0.1); }
-.leaderboard-table tr:hover { background: rgba(240,224,196,0.04); }
+.leaderboard-table tr.highlight { background: rgba(124,58,237,0.1); }
+.leaderboard-table tr:hover { background: rgba(255,255,255,0.03); }
 
 /* How to Play */
 .how-to-play h2 { margin-bottom: 20px; font-size: 24px; }
@@ -421,15 +421,15 @@
 .sidebar-logo { font-size: 18px; font-weight: 900; }
 .players-panel { display: flex; flex-direction: column; gap: 6px; }
 .player-row { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; transition: all 0.2s; }
-.player-row.active-turn { border-color: var(--accent); background: rgba(201,162,39,0.08); }
+.player-row.active-turn { border-color: var(--accent); background: rgba(245,158,11,0.08); }
 .player-row.me { border-color: var(--primary); }
 .player-name { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
 .turn-arrow { color: var(--accent); font-size: 10px; }
 .player-score { font-size: 16px; font-weight: 700; color: var(--accent); }
 .hand-size { font-size: 11px; color: var(--text-muted); }
 .bag-count { font-size: 12px; color: var(--text-muted); padding: 6px 8px; background: var(--bg); border-radius: 6px; border: 1px solid var(--border); }
-.last-msg  { font-size: 11px; color: var(--jade); padding: 6px 8px; background: rgba(92,122,79,0.1); border-radius: 6px; border-left: 3px solid var(--jade); }
-.move-error{ font-size: 11px; color: #e2876a; padding: 6px 8px; background: rgba(193,84,58,0.1); border-radius: 6px; border-left: 3px solid #c1543a; }
+.last-msg  { font-size: 11px; color: var(--jade); padding: 6px 8px; background: rgba(67,160,71,0.1); border-radius: 6px; border-left: 3px solid var(--jade); }
+.move-error{ font-size: 11px; color: #ff6b6b; padding: 6px 8px; background: rgba(229,57,53,0.1); border-radius: 6px; border-left: 3px solid var(--ruby); }
 .game-actions { display: flex; flex-direction: column; gap: 6px; }
 .swap-hint { font-size: 11px; color: var(--text-muted); }
 .waiting-msg { font-size: 12px; color: var(--text-muted); text-align: center; padding: 8px 0; }
@@ -439,7 +439,7 @@
   font-size: 11px;
   color: var(--accent);
   padding: 6px 8px;
-  background: rgba(201,162,39,0.1);
+  background: rgba(245,158,11,0.1);
   border-radius: 6px;
   border-left: 3px solid var(--accent);
   animation: bot-thinking-pulse 1.4s ease-in-out infinite;
@@ -459,9 +459,9 @@
 .board-world {
   position: relative;
   background:
-    radial-gradient(ellipse at 30% 30%, rgba(201,162,39,0.07) 0%, transparent 60%),
-    repeating-linear-gradient(0deg, transparent, transparent 55px, rgba(240,224,196,0.03) 55px, rgba(240,224,196,0.03) 56px),
-    repeating-linear-gradient(90deg, transparent, transparent 55px, rgba(240,224,196,0.03) 55px, rgba(240,224,196,0.03) 56px),
+    radial-gradient(ellipse at 30% 30%, rgba(124,58,237,0.07) 0%, transparent 60%),
+    repeating-linear-gradient(0deg, transparent, transparent 55px, rgba(255,255,255,0.025) 55px, rgba(255,255,255,0.025) 56px),
+    repeating-linear-gradient(90deg, transparent, transparent 55px, rgba(255,255,255,0.025) 55px, rgba(255,255,255,0.025) 56px),
     var(--bg);
 }
 .board-cell-wrapper { position: absolute; display: flex; align-items: center; justify-content: center; }
@@ -500,7 +500,7 @@
   font-size: 12px;
   font-weight: 600;
   color: var(--primary);
-  background: rgba(201,162,39,0.12);
+  background: rgba(124,58,237,0.12);
   border-radius: 999px;
   padding: 3px 10px;
 }
@@ -508,7 +508,7 @@
   position: relative;
   margin: 0 auto;
   background:
-    radial-gradient(ellipse at 30% 30%, rgba(201,162,39,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse at 30% 30%, rgba(124,58,237,0.07) 0%, transparent 60%),
     var(--bg);
   border-radius: 8px;
   border: 1px solid var(--border);
@@ -516,7 +516,7 @@
 .kwerzo-demo-cell {
   position: absolute;
   box-sizing: border-box;
-  border: 1px solid rgba(240,224,196,0.05);
+  border: 1px solid rgba(255,255,255,0.04);
 }
 .kwerzo-demo-tile-wrap {
   position: absolute;
@@ -528,7 +528,7 @@
   position: absolute;
   top: 6px;
   right: 6px;
-  background: rgba(201,162,39,0.92);
+  background: rgba(124,58,237,0.92);
   color: #fff;
   font-weight: 800;
   font-size: 13px;
@@ -538,7 +538,7 @@
   white-space: nowrap;
 }
 .kwerzo-demo-score.kwerzo {
-  background: linear-gradient(135deg, #c9a227, #9a4a3a);
+  background: linear-gradient(135deg, #f59e0b, #e91e63);
   font-size: 14px;
 }
 @keyframes demo-score-pop {
@@ -559,8 +559,8 @@
 .score-preview-popup {
   position: absolute;
   transform: translate(-50%, -100%);
-  background: rgba(240,224,196,0.12);
-  border: 1px solid rgba(201,162,39,0.6);
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(124,58,237,0.6);
   color: #fff;
   font-weight: 800;
   font-size: 16px;
@@ -573,7 +573,7 @@
   animation: score-preview-pulse 1.4s ease-in-out infinite;
 }
 .score-preview-popup.kwerzo {
-  background: linear-gradient(135deg, rgba(201,162,39,0.85), rgba(233,30,99,0.85));
+  background: linear-gradient(135deg, rgba(245,158,11,0.85), rgba(233,30,99,0.85));
   border-color: transparent;
   font-size: 17px;
 }
@@ -586,7 +586,7 @@
 .board-score-popup {
   position: absolute;
   transform: translate(-50%, -100%);
-  background: rgba(201,162,39,0.92);
+  background: rgba(124,58,237,0.92);
   color: #fff;
   font-weight: 800;
   font-size: 18px;
@@ -599,7 +599,7 @@
   animation: board-score-float 2.2s ease-out forwards;
 }
 .board-score-popup.kwerzo {
-  background: linear-gradient(135deg, #c9a227, #9a4a3a);
+  background: linear-gradient(135deg, #f59e0b, #e91e63);
   font-size: 20px;
 }
 @keyframes board-score-float {
@@ -621,16 +621,16 @@
 }
 .drop-target {
   position: absolute;
-  border: 2px dashed rgba(201,162,39,0.45);
+  border: 2px dashed rgba(124,58,237,0.45);
   border-radius: 8px;
-  background: rgba(201,162,39,0.06);
+  background: rgba(124,58,237,0.06);
   transition: background 0.15s;
   cursor: pointer;
   z-index: 1;
   box-sizing: border-box;
 }
 .drop-target:hover,
-.drop-target:active { background: rgba(201,162,39,0.18); border-color: var(--primary); }
+.drop-target:active { background: rgba(124,58,237,0.18); border-color: var(--primary); }
 
 /* Controls overlay (zoom in/out + center) */
 .board-controls {
@@ -695,7 +695,7 @@
 }
 .hand-slot:active { transform: scale(0.93); }
 .hand-slot.used { opacity: 0.3; cursor: not-allowed; }
-.hand-slot.swap-selected { border-color: var(--accent); background: rgba(201,162,39,0.12); }
+.hand-slot.swap-selected { border-color: var(--accent); background: rgba(245,158,11,0.12); }
 .hand-slot.selected-slot { border-color: var(--primary); }
 .hand-slot.dragging-tile { opacity: 0.4; transform: scale(0.9); }
 
@@ -751,7 +751,7 @@
     border: 1px solid var(--border);
   }
   .mob-score-chip.active {
-    background: rgba(201,162,39,0.15);
+    background: rgba(245,158,11,0.15);
     border-color: var(--accent);
     color: var(--accent);
     font-weight: 700;
@@ -784,7 +784,7 @@
     gap: 8px;
   }
   .mob-ok   { color: var(--jade); font-weight: 600; }
-  .mob-err  { color: #e2876a;     font-weight: 600; }
+  .mob-err  { color: #ff6b6b;     font-weight: 600; }
   .mob-wait { color: var(--text-muted); }
 
   /* Action bar */
@@ -929,13 +929,13 @@
 }
 .kwerzo-tile.selected {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(201,162,39,0.3);
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.3);
   transform: scale(1.08);
 }
 .kwerzo-tile.staged {
   border-color: var(--accent);
-  box-shadow: 0 0 12px rgba(201,162,39,0.3);
-  background: rgba(201,162,39,0.08);
+  box-shadow: 0 0 12px rgba(245,158,11,0.3);
+  background: rgba(245,158,11,0.08);
 }
 .kwerzo-tile.tile-ghost { opacity: 0.35; }
 
@@ -952,8 +952,8 @@
   cursor: pointer;
 }
 .turn-overlay-msg {
-  background: rgba(28,20,13,0.93);
-  border: 1px solid rgba(201,162,39,0.6);
+  background: rgba(15,15,26,0.93);
+  border: 1px solid rgba(124,58,237,0.6);
   color: #fff;
   padding: 24px 32px;
   border-radius: 20px;
@@ -1013,7 +1013,7 @@
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: radial-gradient(ellipse at center, #3a2a18 0%, #1c140d 70%);
+  background: radial-gradient(ellipse at center, #1a0a3a 0%, #0f0f1a 70%);
 }
 
 .game-over-card {
@@ -1039,7 +1039,7 @@
   border-radius: 8px;
   border: 1px solid var(--border);
 }
-.score-row.winner { border-color: var(--accent); background: rgba(201,162,39,0.08); }
+.score-row.winner { border-color: var(--accent); background: rgba(245,158,11,0.08); }
 .rank { width: 28px; height: 28px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
 .score-row.winner .rank { background: var(--accent); color: var(--bg); }
 .pname { flex: 1; text-align: left; font-weight: 600; }
@@ -1082,9 +1082,9 @@
   text-transform: uppercase;
   letter-spacing: 0.4px;
 }
-.bot-badge.easy   { background: #c4cfa8; color: #3a4a2a; }
-.bot-badge.medium { background: #e8d9a0; color: #5a4520; }
-.bot-badge.hard   { background: #d9b8b0; color: #5a2a20; }
+.bot-badge.easy   { background: #d4edda; color: #276749; }
+.bot-badge.medium { background: #fff3cd; color: #856404; }
+.bot-badge.hard   { background: #f8d7da; color: #842029; }
 
 /* Prevent iOS text selection / callout and page-scroll bleed on board */
 .board-viewport {
@@ -1169,7 +1169,7 @@
 }
 .presence-dot.online {
   background: #43A047;
-  box-shadow: 0 0 6px rgba(92,122,79,0.7);
+  box-shadow: 0 0 6px rgba(67,160,71,0.7);
 }
 .presence-dot.offline { background: #555; }
 
@@ -1182,7 +1182,7 @@
 }
 .invite-empty-msg { font-size: 12px; color: var(--text-muted); }
 .invite-status { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
-.invite-status-error { color: #e2876a; }
+.invite-status-error { color: #ff6b6b; }
 
 /* ════ Add Players Panel (pregame: friends + bots, max 3) ════ */
 .add-players-panel {
@@ -1277,7 +1277,7 @@
   height: 18px;
   padding: 0 4px;
   border-radius: 9px;
-  background: #c1543a;
+  background: var(--ruby, #e53935);
   color: #fff;
   font-size: 10px;
   font-weight: 700;
@@ -1350,5 +1350,5 @@
 }
 .notif-dismiss:hover { color: var(--text); }
 
-.notif-item.notif-game_invite { border-color: rgba(201,162,39,0.4); }
-.notif-item.notif-friend_request { border-color: rgba(92,122,79,0.4); }
+.notif-item.notif-game_invite { border-color: rgba(124,58,237,0.4); }
+.notif-item.notif-friend_request { border-color: rgba(67,160,71,0.4); }

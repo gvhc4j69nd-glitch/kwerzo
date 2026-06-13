@@ -55,7 +55,7 @@ export default function AuthPage({ onAuth }) {
         <div className="auth-logo">
           <span className="logo-k">K</span>wer<span className="logo-z">z</span>o
         </div>
-        <p className="auth-tagline">The clockwork tile-matching game</p>
+        <p className="auth-tagline">The cosmic tile-matching game</p>
 
         <div className="auth-tabs">
           <button className={mode === 'login' ? 'active' : ''} onClick={() => { setMode('login'); setError(''); }}>
