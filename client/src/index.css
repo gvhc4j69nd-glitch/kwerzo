@@ -1,24 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #0f0f1a;
-  --surface: #1a1a2e;
-  --surface2: #16213e;
-  --border: #2a2a4a;
-  --text: #e8e8f0;
-  --text-muted: #8888aa;
-  --primary: #7c3aed;
-  --primary-hover: #6d28d9;
-  --accent: #f59e0b;
-  --ruby: #F5F5F5;
-  --amber: #FB8C00;
-  --jade: #43A047;
-  --sapphire: #1E88E5;
-  --amethyst: #8E24AA;
-  --coral: #E91E63;
+  /* ── Steampunk palette: aged brass, leather, oxidized copper, parchment ── */
+  --bg: #1c140d;
+  --surface: #2a1d12;
+  --surface2: #3a2a18;
+  --border: #6b4a23;
+  --text: #f0e0c4;
+  --text-muted: #b59a72;
+  --primary: #b8732e;
+  --primary-hover: #d4915a;
+  --accent: #c9a227;
+  --ruby: #cfae7a;
+  --amber: #b8732e;
+  --jade: #5c7a4f;
+  --sapphire: #4a6e7a;
+  --amethyst: #7a4a5c;
+  --coral: #9a4a3a;
+
+  --font-display: 'Cinzel', 'Times New Roman', serif;
+  --font-body: 'Crimson Text', 'Georgia', serif;
 }
 
 html, body, #root { height: 100%; }
-body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  background-image:
+    radial-gradient(ellipse at 50% 0%, rgba(184,115,46,0.07) 0%, transparent 55%),
+    repeating-linear-gradient(45deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 2px, transparent 2px, transparent 4px);
+}
 button { font-family: inherit; cursor: pointer; }
 input { font-family: inherit; }
+h1, h2, h3, h4, .logo-small, .auth-logo, .sidebar-logo, .mob-logo {
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+}
