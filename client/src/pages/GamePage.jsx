@@ -2,7 +2,7 @@ import React, { useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import KwerzoTile from '../components/KwerzoTile';
 import AddPlayersPanel from '../components/AddPlayersPanel';
-import { playKwerzoSound, playBellSound, prewarmVoices, unlockAudio } from '../lib/kwerzoSound';
+import { playKwerzoSound, playKwerzoFanfare, playBellSound, prewarmVoices, unlockAudio } from '../lib/kwerzoSound';
 import { previewScore } from '../lib/kwerzoScoring';
 import NotificationCenter from '../components/NotificationCenter';
 
@@ -273,7 +273,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       if (moverId && type === undefined && typeof points === 'number') {
         setLastScoreByPlayer(prev => ({ ...prev, [moverId]: { points, kwerzo: !!kwerzo } }));
       }
-      if (kwerzo) playKwerzoSound();
+      if (kwerzo) { playKwerzoSound(); playKwerzoFanfare(); }
       setBotThinking(null);
 
       // Show a floating score popup over the board where the local player just placed tiles

@@ -85,6 +85,39 @@ export function playKwerzoSound() {
   window.speechSynthesis.speak(utter);
 }
 
+// ── Kwerzo! fanfare (Web Audio) ─────────────────────────────────────────────
+// iOS/Safari can silently drop speechSynthesis.speak() calls that originate
+// from async contexts (socket events) even after unlockAudio() — a long-
+// standing WebKit limitation. An already-resumed AudioContext is far more
+// reliable there, so play this alongside the TTS shout as the dependable cue.
+
+export function playKwerzoFanfare() {
+  try {
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+
+    // Ascending arpeggio: C5, E5, G5, C6
+    [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+      const start = now + i * 0.09;
+      const osc = ctx.createOscillator();
+      const env = ctx.createGain();
+
+      osc.connect(env);
+      env.connect(ctx.destination);
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, start);
+
+      env.gain.setValueAtTime(0, start);
+      env.gain.linearRampToValueAtTime(0.5, start + 0.01);
+      env.gain.exponentialRampToValueAtTime(0.001, start + 0.5);
+
+      osc.start(start);
+      osc.stop(start + 0.5);
+    });
+  } catch (_) {}
+}
+
 // ── Notification bell ───────────────────────────────────────────────────────
 
 export function playBellSound() {
