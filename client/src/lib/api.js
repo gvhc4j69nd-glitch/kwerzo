@@ -10,6 +10,12 @@ async function request(path, options = {}) {
     ...options
   });
   const data = await res.json();
+  if (res.status === 401) {
+    localStorage.removeItem('kwerzo_token');
+    localStorage.removeItem('kwerzo_user');
+    window.location.reload();
+    return;
+  }
   if (!res.ok) throw new Error(data.error || 'Request failed');
   return data;
 }

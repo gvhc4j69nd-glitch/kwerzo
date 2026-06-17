@@ -24,6 +24,13 @@ export default function App() {
     s.connect();
     setSocket(s);
 
+    s.on('connect_error', (err) => {
+      if (/token/i.test(err.message)) {
+        localStorage.removeItem('kwerzo_token');
+        localStorage.removeItem('kwerzo_user');
+        window.location.reload();
+      }
+    });
     s.on('session_restored', ({ roomId, room, state }) => {
       setActiveRoom({ roomId, room, initialState: state });
     });
@@ -31,7 +38,7 @@ export default function App() {
       setActiveRoom(prev => (prev?.roomId === roomId ? null : prev));
     });
 
-    return () => { s.off('session_restored'); s.off('room_expired'); };
+    return () => { s.off('connect_error'); s.off('session_restored'); s.off('room_expired'); };
   }, [token]);
 
   function handleAuth(userData, tok) {

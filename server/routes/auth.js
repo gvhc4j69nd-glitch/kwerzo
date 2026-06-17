@@ -34,7 +34,7 @@ router.post('/register', async (req, res) => {
       }
       const user = { id: memNextId(), username: username.trim(), email: lemail, password_hash: hash };
       memDb.users.push(user);
-      const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+      const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
       return res.json({ token, user: { id: user.id, username: user.username, email: user.email } });
     }
 
@@ -47,7 +47,7 @@ router.post('/register', async (req, res) => {
       'INSERT INTO kwerzo_leaderboard (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING',
       [user.id]
     ).catch(err => console.error('[auth] leaderboard row insert on register:', err.message));
-    const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
     res.json({ token, user: { id: user.id, username: user.username, email: user.email } });
   } catch (err) {
     if (err.code === '23505') {
@@ -71,7 +71,7 @@ router.post('/login', async (req, res) => {
       if (!user) return res.status(401).json({ error: 'Invalid username or password' });
       const valid = await bcrypt.compare(password, user.password_hash);
       if (!valid) return res.status(401).json({ error: 'Invalid username or password' });
-      const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+      const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
       return res.json({ token, user: { id: user.id, username: user.username, email: user.email } });
     }
 
@@ -88,7 +88,7 @@ router.post('/login', async (req, res) => {
       'INSERT INTO kwerzo_leaderboard (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING',
       [user.id]
     ).catch(err => console.error('[auth] leaderboard row insert:', err.message));
-    const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
     res.json({ token, user: { id: user.id, username: user.username, email: user.email } });
   } catch (err) {
     console.error(err);
