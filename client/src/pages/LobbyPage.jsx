@@ -237,19 +237,24 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
                   </div>
                 </div>
               )}
+              <p className="lb-bots-hint">
+                Beating tougher bots earns more rating than beating easy ones — take on Hard and Expert bots to climb faster.
+              </p>
               <table className="leaderboard-table">
                 <thead>
-                  <tr><th>#</th><th>Player</th><th>Rating</th><th>W</th><th>L</th><th>Score</th><th></th></tr>
+                  <tr><th>#</th><th>Player</th><th>Rating</th><th>W</th><th>L</th><th></th></tr>
                 </thead>
                 <tbody>
                   {leaderboard.topBots.map((row, i) => (
                     <tr key={row.username} className={row.username === user.username ? 'highlight' : ''}>
                       <td>{i + 1}</td>
-                      <td>{row.username}</td>
+                      <td>
+                        {row.username}
+                        {i === 0 && <span className="grand-master-tag">Grand Master</span>}
+                      </td>
                       <td>{row.bot_rating}</td>
                       <td>{row.bot_wins}</td>
                       <td>{row.bot_losses}</td>
-                      <td>{row.bot_total_score}</td>
                       <td>{renderFriendCell(row.username, row.user_id)}</td>
                     </tr>
                   ))}

@@ -344,6 +344,27 @@
 .leaderboard-table tr.highlight { background: rgba(124,58,237,0.1); }
 .leaderboard-table tr:hover { background: rgba(255,255,255,0.03); }
 
+.lb-bots-hint {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.grand-master-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: linear-gradient(135deg, #f59e0b, #e91e63);
+  color: #fff;
+  vertical-align: middle;
+}
+
 /* How to Play */
 .how-to-play h2 { margin-bottom: 20px; font-size: 24px; }
 .how-to-play h3 { margin: 20px 0 8px; color: var(--accent); }
