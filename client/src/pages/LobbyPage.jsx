@@ -242,7 +242,7 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
               </p>
               <table className="leaderboard-table">
                 <thead>
-                  <tr><th>#</th><th>Player</th><th>Rating</th><th>W</th><th>L</th><th></th></tr>
+                  <tr><th>#</th><th>Player</th><th>Rating</th><th>W</th><th>L</th></tr>
                 </thead>
                 <tbody>
                   {leaderboard.topBots.map((row, i) => (
@@ -255,7 +255,6 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
                       <td>{row.bot_rating}</td>
                       <td>{row.bot_wins}</td>
                       <td>{row.bot_losses}</td>
-                      <td>{renderFriendCell(row.username, row.user_id)}</td>
                     </tr>
                   ))}
                 </tbody>
