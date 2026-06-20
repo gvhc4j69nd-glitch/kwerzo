@@ -128,18 +128,54 @@ function findAllMoves(board, hand) {
   return moves;
 }
 
+// ── Single-tile strategic value (how much a tile contributes to live lines) ──
+function tileValue(tile, board) {
+  let value = 0;
+  for (const cell of Object.keys(board)) {
+    const [cx, cy] = cell.split(',').map(Number);
+    for (const dir of ['h', 'v']) {
+      const line = getLineValues(board, cx, cy, dir);
+      const len  = line.length;
+      if (len >= KWERZO_SIZE) continue;
+      const sameColor = line.every(t => t.color === tile.color);
+      const sameShape = line.every(t => t.shape === tile.shape);
+      if (sameColor || sameShape) value += len >= 4 ? 10 : len >= 3 ? 4 : 1;
+    }
+  }
+  return value;
+}
+
+// ── 1-ply lookahead: reward moves that leave a stronger hand behind ──────────
+// Expert-only — simulates the post-move board and hand, then values the
+// leftover tiles against it. Hard plays the best move available right now;
+// expert also accounts for what that move sets up for its NEXT turn.
+function handQualityBonus(move, hand, board) {
+  const remaining = [...hand];
+  for (const { tile } of move.placements) {
+    const idx = remaining.findIndex(t => t.shape === tile.shape && t.color === tile.color);
+    if (idx !== -1) remaining.splice(idx, 1);
+  }
+  const tempBoard = { ...board };
+  for (const { x, y, tile } of move.placements) tempBoard[k(x, y)] = tile;
+
+  let total = 0;
+  for (const t of remaining) total += tileValue(t, tempBoard);
+  return Math.round(total * 0.3); // tie-breaker weight — never overrides raw points
+}
+
 // ── Score a move with difficulty-appropriate Kwerzo awareness ────────────────
-function effectiveScore(move, board, difficulty) {
+function effectiveScore(move, board, difficulty, hand) {
   const base    = move.pts;
   const kBonus  = kwerzoPotential(board, move.placements);
 
   if (difficulty === 'easy')   return base + Math.round(kBonus * 0.6); // 60% awareness
   if (difficulty === 'medium') return base + Math.round(kBonus * 0.9); // 90% awareness
+  if (difficulty === 'expert') return base + kBonus + handQualityBonus(move, hand, board); // 100% + lookahead
   return base + kBonus;                                                  // hard: 100%
 }
 
 // ── Pick a move by difficulty ─────────────────────────────────────────────────
-function pickMove(moves, board, difficulty) {
+function pickMove(moves, board, difficulty, hand) {
   if (moves.length === 0) return null;
 
   if (difficulty === 'easy') {
@@ -149,7 +185,7 @@ function pickMove(moves, board, difficulty) {
   }
 
   // Score every move with the Kwerzo potential bonus applied
-  const scored = moves.map(m => ({ m, score: effectiveScore(m, board, difficulty) }));
+  const scored = moves.map(m => ({ m, score: effectiveScore(m, board, difficulty, hand) }));
   scored.sort((a, b) => b.score - a.score || b.m.placements.length - a.m.placements.length);
 
   if (difficulty === 'medium') {
@@ -158,7 +194,7 @@ function pickMove(moves, board, difficulty) {
     return top[Math.floor(Math.random() * top.length)].m;
   }
 
-  // hard: always best move
+  // hard/expert: always the best-scored move
   return scored[0].m;
 }
 
@@ -168,28 +204,11 @@ function chooseTilesToSwap(hand, board, difficulty) {
   if (hand.length === 0) return [];
 
   // Score each tile by how many near-Kwerzo lines it could extend
-  const scored = hand.map((tile, idx) => {
-    let value = 0;
-    for (const cell of Object.keys(board)) {
-      const [cx, cy] = cell.split(',').map(Number);
-      for (const dir of ['h', 'v']) {
-        const line = getLineValues(board, cx, cy, dir);
-        const len  = line.length;
-        if (len >= KWERZO_SIZE) continue; // already full
-        const sameColor = line.every(t => t.color === tile.color);
-        const sameShape = line.every(t => t.shape === tile.shape);
-        if (sameColor || sameShape) {
-          // More valuable if line is close to Kwerzo
-          value += len >= 4 ? 10 : len >= 3 ? 4 : 1;
-        }
-      }
-    }
-    return { tile, idx, value };
-  });
+  const scored = hand.map((tile, idx) => ({ tile, idx, value: tileValue(tile, board) }));
 
   scored.sort((a, b) => a.value - b.value); // lowest value tiles first
 
-  if (difficulty === 'hard') {
+  if (difficulty === 'hard' || difficulty === 'expert') {
     // Swap only the single least-useful tile
     return [scored[0].tile];
   }
@@ -217,7 +236,7 @@ function getBotMove(state, botId, difficulty) {
     return { action: 'pass' };
   }
 
-  const chosen = pickMove(moves, board, difficulty);
+  const chosen = pickMove(moves, board, difficulty, hand);
   if (!chosen) return { action: 'pass' };
   return { action: 'place', placements: chosen.placements };
 }

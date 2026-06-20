@@ -5,6 +5,7 @@ const BOTS = [
   { difficulty: 'easy',   label: 'Easy Bot (Joe)' },
   { difficulty: 'medium', label: 'Medium Bot' },
   { difficulty: 'hard',   label: 'Hard Bot (John)' },
+  { difficulty: 'expert', label: 'Expert Bot (Ada)' },
 ];
 
 // Combined list of online friends + bot options, each with a "+" to add,

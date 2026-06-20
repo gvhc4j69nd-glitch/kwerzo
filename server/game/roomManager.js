@@ -14,6 +14,7 @@ const BOT_NAMES = {
   easy:   ['Joe', 'Pixel', 'Doodle', 'Blinky', 'Zippy'],
   medium: ['Nova', 'Cipher', 'Axiom', 'Prism', 'Vector'],
   hard:   ['John', 'Titan', 'Apex', 'Zenith', 'Oracle'],
+  expert: ['Ada', 'Specter', 'Vortex', 'Magnus', 'Eclipse'],
 };
 
 // ── Persist helper — fire-and-forget so game logic stays synchronous ──────────
