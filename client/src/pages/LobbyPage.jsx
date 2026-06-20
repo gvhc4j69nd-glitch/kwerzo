@@ -205,17 +205,19 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
               )}
               <table className="leaderboard-table">
                 <thead>
-                  <tr><th>#</th><th>Player</th><th>ELO</th><th>W</th><th>L</th><th>Score</th><th></th></tr>
+                  <tr><th>#</th><th>Player</th><th>ELO</th><th>W</th><th>L</th><th></th></tr>
                 </thead>
                 <tbody>
                   {leaderboard.top.map((row, i) => (
                     <tr key={row.username} className={row.username === user.username ? 'highlight' : ''}>
                       <td>{i + 1}</td>
-                      <td>{row.username}</td>
+                      <td>
+                        {row.username}
+                        {i === 0 && <span className="grand-master-tag">Grand Master</span>}
+                      </td>
                       <td>{row.elo_rating}</td>
                       <td>{row.wins}</td>
                       <td>{row.losses}</td>
-                      <td>{row.total_score}</td>
                       <td>{renderFriendCell(row.username, row.user_id)}</td>
                     </tr>
                   ))}
