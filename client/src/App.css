@@ -445,6 +445,7 @@
 .player-row.active-turn { border-color: var(--accent); background: rgba(245,158,11,0.08); }
 .player-row.me { border-color: var(--primary); }
 .player-name { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+.player-color-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .turn-arrow { color: var(--accent); font-size: 10px; }
 .player-score { font-size: 16px; font-weight: 700; color: var(--accent); }
 .hand-size { font-size: 11px; color: var(--text-muted); }

@@ -30,11 +30,22 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
   const [showTurnOverlay, setShowTurnOverlay] = useState(false);
   const [botThinking,     setBotThinking]     = useState(null); // { botId, username } | null
   const [boardScorePopup, setBoardScorePopup] = useState(null); // { points, kwerzo, placements } | null
+  const [lastPlacementsByPlayer, setLastPlacementsByPlayer] = useState({}); // { [playerId]: Set<"x,y"> }
   const prevMyTurn = useRef(false);
   const transformRef = useRef(null);
   const trayRef = useRef(null);
   const gameStateRef = useRef(null);
   const scorePopupTimerRef = useRef(null);
+  const lastMoverIdRef = useRef(null);
+  const roundMovers = useRef(new Set());
+  const pendingRoundMsgs = useRef([]);
+  const pendingBoardPopupRef = useRef(null);
+
+  const PLAYER_COLORS = ['#7c3aed', '#e91e63', '#10b981', '#f59e0b'];
+  const playerColorMap = {};
+  (room?.players || []).forEach((p, i) => {
+    playerColorMap[p.id] = PLAYER_COLORS[i % PLAYER_COLORS.length];
+  });
 
   useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
 
@@ -247,6 +258,20 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
     });
     socket.on('game_update', ({ state, roomId: id }) => {
       if (id !== roomId) return;
+
+      // Track last placements per player for color highlighting
+      const moverId = lastMoverIdRef.current;
+      if (moverId && state.lastPlacements?.length) {
+        setLastPlacementsByPlayer(prev => ({
+          ...prev,
+          [String(moverId)]: new Set(state.lastPlacements.map(p => `${p.x},${p.y}`)),
+        }));
+        // Complete the pending board popup with actual placements
+        if (pendingBoardPopupRef.current && String(moverId) === String(user.id)) {
+          pendingBoardPopupRef.current = { ...pendingBoardPopupRef.current, placements: state.lastPlacements };
+        }
+      }
+
       setGameState(state);
       setStaged([]);
       setSelectedHandIdx(null);
@@ -254,6 +279,25 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       setSwapSelection([]);
       setMoveError('');
       setBotThinking(null);
+
+      // Flush round results after all players have moved once
+      const totalPlayers = state.players.length;
+      if (roundMovers.current.size >= totalPlayers) {
+        if (pendingRoundMsgs.current.length) {
+          setLastMsg(pendingRoundMsgs.current.join(' · '));
+          pendingRoundMsgs.current = [];
+        }
+        if (pendingBoardPopupRef.current?.placements) {
+          const popup = pendingBoardPopupRef.current;
+          pendingBoardPopupRef.current = null;
+          if (scorePopupTimerRef.current) clearTimeout(scorePopupTimerRef.current);
+          setBoardScorePopup(popup);
+          scorePopupTimerRef.current = setTimeout(() => setBoardScorePopup(null), 2200);
+        } else {
+          pendingBoardPopupRef.current = null;
+        }
+        roundMovers.current = new Set();
+      }
     });
     socket.on('bot_thinking', ({ roomId: id, botId, username }) => {
       if (id !== roomId) return;
@@ -267,9 +311,16 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       if      (type === 'swap') msg = `${who} swapped ${count} tile${count !== 1 ? 's' : ''}`;
       else if (type === 'pass') msg = `${who} passed`;
       else                      msg = `${who} scored ${points} pt${points !== 1 ? 's' : ''}${kwerzo ? ' — Kwerzo! 🎉' : ''}`;
-      // Only show the status line for OTHER players' moves/scores —
-      // the local player already sees the result of their own move on the board.
-      if (!isOwnMove) setLastMsg(msg);
+
+      // Store mover so game_update can correlate placements to this player
+      lastMoverIdRef.current = moverId;
+
+      // Buffer message — will be shown after all players in this round have moved
+      if (moverId) {
+        roundMovers.current.add(String(moverId));
+        pendingRoundMsgs.current.push(msg);
+      }
+
       if (moverId) setLastMoveByPlayer(prev => ({ ...prev, [moverId]: msg }));
       if (moverId && type === undefined && typeof points === 'number') {
         setLastScoreByPlayer(prev => ({ ...prev, [moverId]: { points, kwerzo: !!kwerzo } }));
@@ -277,18 +328,23 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       if (kwerzo) { playKwerzoSound(); playKwerzoFanfare(); }
       setBotThinking(null);
 
-      // Show a floating score popup over the board where the local player just placed tiles
+      // Buffer board score popup for own place moves — placements arrive in game_update
       if (isOwnMove && type === undefined && typeof points === 'number') {
-        const placements = gameStateRef.current?.lastPlacements || [];
-        if (placements.length) {
-          if (scorePopupTimerRef.current) clearTimeout(scorePopupTimerRef.current);
-          setBoardScorePopup({ points, kwerzo: !!kwerzo, placements });
-          scorePopupTimerRef.current = setTimeout(() => setBoardScorePopup(null), 2200);
-        }
+        pendingBoardPopupRef.current = { points, kwerzo: !!kwerzo };
       }
     });
     socket.on('move_error', (err) => { setMoveError(err); setStaged([]); setBotThinking(null); });
-    socket.on('game_over',  (data) => { setGameOver(data); setBotThinking(null); });
+    socket.on('game_over',  (data) => {
+      // Flush any buffered round messages before showing game over
+      if (pendingRoundMsgs.current.length) {
+        setLastMsg(pendingRoundMsgs.current.join(' · '));
+        pendingRoundMsgs.current = [];
+      }
+      roundMovers.current = new Set();
+      pendingBoardPopupRef.current = null;
+      setGameOver(data);
+      setBotThinking(null);
+    });
     socket.on('room_deleted', ({ roomId: id }) => { if (id === roomId) onLeave(); });
     return () => {
       socket.off('room_update');
@@ -481,6 +537,10 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
                 <div key={rp.id} className={`player-row ${isCurrentTurn ? 'active-turn' : ''} ${rp.id === user.id ? 'me' : ''}`}>
                   <div className="player-name">
                     {isCurrentTurn && <span className="turn-arrow">▶</span>}
+                    <span
+                      className="player-color-dot"
+                      style={{ background: playerColorMap[rp.id] }}
+                    />
                     {rp.username}{rp.id === user.id ? ' (you)' : ''}
                     {rp.isBot && <span className={`bot-badge ${rp.difficulty}`}>{rp.difficulty}</span>}
                   </div>
@@ -592,11 +652,27 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
                       const [x, y] = k.split(',').map(Number);
                       const isNew = lastPlacedKeys.has(k);
                       const justRevealed = revealedKeys.has(k);
+
+                      // Find which player last placed this tile (for color highlight)
+                      let playerColor = null;
+                      for (const [pid, placedSet] of Object.entries(lastPlacementsByPlayer)) {
+                        if (placedSet.has(k)) { playerColor = playerColorMap[pid]; break; }
+                      }
+
                       return (
                         <div
                           key={`tile-${k}`}
                           className="board-cell-wrapper"
-                          style={{ left: (x - minX) * CELL, top: (y - minY) * CELL }}
+                          style={{
+                            left: (x - minX) * CELL,
+                            top: (y - minY) * CELL,
+                            ...(playerColor ? {
+                              outline: `3px solid ${playerColor}`,
+                              outlineOffset: '-2px',
+                              borderRadius: 5,
+                              zIndex: 1,
+                            } : {}),
+                          }}
                         >
                           <KwerzoTile
                             shape={tile.shape}
