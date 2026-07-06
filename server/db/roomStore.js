@@ -114,6 +114,7 @@ async function purgeInactiveRooms() {
     const { rows } = await db.pool.query(
       `DELETE FROM kwerzo_rooms
        WHERE last_activity_at <= $1
+          OR (status = 'waiting' AND created_at <= $1)
        RETURNING room_id`,
       [cutoff]
     );
