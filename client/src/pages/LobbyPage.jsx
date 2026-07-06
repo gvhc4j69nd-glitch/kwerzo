@@ -3,6 +3,7 @@ import { api } from '../lib/api';
 import FriendsPanel from '../components/FriendsPanel';
 import NotificationCenter from '../components/NotificationCenter';
 import KwerzoDemo from '../components/KwerzoDemo';
+import AdUnit from '../components/AdUnit';
 
 export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
   const [rooms, setRooms] = useState([]);
@@ -167,6 +168,7 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
               })
             )}
           </div>
+          <AdUnit />
         </div>
       )}
 

@@ -5,6 +5,7 @@ import AddPlayersPanel from '../components/AddPlayersPanel';
 import { playKwerzoSound, playKwerzoFanfare, playBellSound, prewarmVoices, unlockAudio } from '../lib/kwerzoSound';
 import { previewScore } from '../lib/kwerzoScoring';
 import NotificationCenter from '../components/NotificationCenter';
+import AdUnit from '../components/AdUnit';
 
 const CELL = 56;
 const PAD  = 3;   // empty cells of padding around tiles
@@ -428,6 +429,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
               );
             })}
           </div>
+          <AdUnit style={{ marginTop: 8, marginBottom: 8 }} />
           <button className="btn-primary" onClick={handleLeave}>Back to Lobby</button>
         </div>
       </div>
