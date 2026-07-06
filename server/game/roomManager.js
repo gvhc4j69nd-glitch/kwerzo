@@ -83,6 +83,14 @@ function joinRoom(roomId, userId, username) {
   if (room.players.find(p => p.id === userId)) return { room };
 
   room.players.push({ id: userId, username });
+
+  // If hostId points to a bot (can happen when host left and only bots remained),
+  // restore the rejoining human as host
+  const currentHost = room.players.find(p => p.id === room.hostId);
+  if (!currentHost || currentHost.isBot) {
+    room.hostId = userId;
+  }
+
   persist(room);
   return { room };
 }
@@ -99,8 +107,17 @@ function leaveRoom(roomId, userId) {
     return { deleted: true };
   }
 
-  if (room.hostId === userId && room.players.length > 0) {
-    room.hostId = room.players[0].id;
+  if (room.hostId === userId) {
+    // Only transfer host to a human player — bots cannot host
+    const nextHuman = room.players.find(p => !p.isBot);
+    if (nextHuman) {
+      room.hostId = nextHuman.id;
+    } else if (room.status === 'waiting') {
+      // No humans left in a waiting room — nothing to host, clean up
+      rooms.delete(roomId);
+      remove(roomId);
+      return { deleted: true };
+    }
   }
 
   if (room.status === 'playing' && room.gameState) {
