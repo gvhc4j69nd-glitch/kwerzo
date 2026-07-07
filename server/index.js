@@ -316,7 +316,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('add_bot', ({ roomId, difficulty }) => {
-    const validDifficulties = ['easy', 'medium', 'hard', 'expert'];
+    const validDifficulties = ['easy', 'medium', 'hard', 'expert', 'legendary'];
     const diff = validDifficulties.includes(difficulty) ? difficulty : 'medium';
     const result = roomManager.addBot(roomId, diff);
     if (result.error) { socket.emit('error', result.error); return; }

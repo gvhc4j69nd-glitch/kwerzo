@@ -1107,7 +1107,8 @@
 .bot-badge.easy   { background: #d4edda; color: #276749; }
 .bot-badge.medium { background: #fff3cd; color: #856404; }
 .bot-badge.hard   { background: #f8d7da; color: #842029; }
-.bot-badge.expert { background: #1a1a1a; color: #ffd700; }
+.bot-badge.expert     { background: #1a1a1a; color: #ffd700; }
+.bot-badge.legendary  { background: linear-gradient(135deg, #4a0080, #8b0000); color: #fff; border: 1px solid #c084fc; text-shadow: 0 0 6px #c084fc; }
 
 /* Prevent iOS text selection / callout and page-scroll bleed on board */
 .board-viewport {

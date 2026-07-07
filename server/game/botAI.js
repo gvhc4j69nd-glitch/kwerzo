@@ -163,15 +163,39 @@ function handQualityBonus(move, hand, board) {
   return Math.round(total * 0.3); // tie-breaker weight — never overrides raw points
 }
 
+// ── 2-ply lookahead: score the best follow-up move with the remaining hand ────
+// Legendary-only — after committing to a move, find the best move the bot could
+// make on its NEXT turn using only the tiles that remain in hand (conservative:
+// ignores new draws, so any actual draw is pure upside).
+function nextTurnBonus(move, hand, board) {
+  const remaining = [...hand];
+  for (const { tile } of move.placements) {
+    const idx = remaining.findIndex(t => t.shape === tile.shape && t.color === tile.color);
+    if (idx !== -1) remaining.splice(idx, 1);
+  }
+  if (remaining.length === 0) return 0;
+
+  const tempBoard = { ...board };
+  for (const { x, y, tile } of move.placements) tempBoard[k(x, y)] = tile;
+
+  const nextMoves = findAllMoves(tempBoard, remaining);
+  if (nextMoves.length === 0) return 0;
+
+  // Best raw score available next turn, weighted to not dominate current points
+  const bestNext = Math.max(...nextMoves.map(m => m.pts + kwerzoPotential(tempBoard, m.placements)));
+  return Math.round(bestNext * 0.5);
+}
+
 // ── Score a move with difficulty-appropriate Kwerzo awareness ────────────────
 function effectiveScore(move, board, difficulty, hand) {
   const base    = move.pts;
   const kBonus  = kwerzoPotential(board, move.placements);
 
-  if (difficulty === 'easy')   return base + Math.round(kBonus * 0.6); // 60% awareness
-  if (difficulty === 'medium') return base + Math.round(kBonus * 0.9); // 90% awareness
-  if (difficulty === 'expert') return base + kBonus + handQualityBonus(move, hand, board); // 100% + lookahead
-  return base + kBonus;                                                  // hard: 100%
+  if (difficulty === 'easy')       return base + Math.round(kBonus * 0.6);
+  if (difficulty === 'medium')     return base + Math.round(kBonus * 0.9);
+  if (difficulty === 'expert')     return base + kBonus + handQualityBonus(move, hand, board);
+  if (difficulty === 'legendary')  return base + kBonus + handQualityBonus(move, hand, board) + nextTurnBonus(move, hand, board);
+  return base + kBonus; // hard: 100% kwerzo awareness, greedy best move
 }
 
 // ── Pick a move by difficulty ─────────────────────────────────────────────────
@@ -184,17 +208,15 @@ function pickMove(moves, board, difficulty, hand) {
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
-  // Score every move with the Kwerzo potential bonus applied
   const scored = moves.map(m => ({ m, score: effectiveScore(m, board, difficulty, hand) }));
   scored.sort((a, b) => b.score - a.score || b.m.placements.length - a.m.placements.length);
 
   if (difficulty === 'medium') {
-    // Pick randomly from the top-3 to stay competitive but not perfect
     const top = scored.slice(0, Math.min(3, scored.length));
     return top[Math.floor(Math.random() * top.length)].m;
   }
 
-  // hard/expert: always the best-scored move
+  // hard / expert / legendary: always the best-scored move
   return scored[0].m;
 }
 
@@ -208,7 +230,7 @@ function chooseTilesToSwap(hand, board, difficulty) {
 
   scored.sort((a, b) => a.value - b.value); // lowest value tiles first
 
-  if (difficulty === 'hard' || difficulty === 'expert') {
+  if (difficulty === 'hard' || difficulty === 'expert' || difficulty === 'legendary') {
     // Swap only the single least-useful tile
     return [scored[0].tile];
   }

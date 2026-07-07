@@ -142,7 +142,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
 // Rating swing multipliers by bot difficulty — tougher bots move the
 // "vs bots" rating more in both directions (bigger risk/reward).
-const BOT_DIFFICULTY_WEIGHT = { easy: 0.5, medium: 1, hard: 1.75, expert: 2.5 };
+const BOT_DIFFICULTY_WEIGHT = { easy: 0.5, medium: 1, hard: 1.75, expert: 2.5, legendary: 4.0 };
 
 // ── Update stats after a completed game ─────────────────────────────────────
 // opts: { vsBots: boolean, botWeight: number }
