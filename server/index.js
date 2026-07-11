@@ -62,12 +62,21 @@ app.get(/(.*)/, (req, res) => {
   }
 });
 
-// Socket.io auth middleware
-io.use((socket, next) => {
+// Socket.io auth middleware — verify JWT then refresh username from DB
+io.use(async (socket, next) => {
   const token = socket.handshake.auth?.token;
   if (!token) return next(new Error('No token'));
   try {
-    socket.user = jwt.verify(token, JWT_SECRET);
+    const payload = jwt.verify(token, JWT_SECRET);
+    socket.user = payload;
+    // Always pull the current username from DB so renames take effect immediately
+    try {
+      const { db } = require('./db/schema');
+      const row = db.devMode
+        ? db.users?.find(u => u.id === payload.userId)
+        : (await db.pool.query('SELECT username FROM kwerzo_users WHERE id = $1', [payload.userId])).rows[0];
+      if (row?.username) socket.user = { ...payload, username: row.username };
+    } catch (_) { /* fall back to JWT username if DB lookup fails */ }
     next();
   } catch {
     next(new Error('Invalid token'));
