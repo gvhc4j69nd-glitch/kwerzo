@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../lib/api';
 import KwerzoDemo from '../components/KwerzoDemo';
-import AdUnit from '../components/AdUnit';
 
 function EyeIcon({ open }) {
   return open ? (
@@ -111,7 +110,6 @@ export default function AuthPage({ onAuth }) {
           </button>
         </form>
 
-        <AdUnit style={{ marginTop: 20 }} />
         <div className="auth-shapes">
           {['☽', '⚡', '★', '🍃', '⬡', '♥'].map((s, i) => (
             <span key={i} className="deco-shape" style={{ animationDelay: `${i * 0.3}s` }}>{s}</span>

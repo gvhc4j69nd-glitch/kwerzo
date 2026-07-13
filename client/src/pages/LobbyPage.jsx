@@ -168,7 +168,6 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
               })
             )}
           </div>
-          <AdUnit />
         </div>
       )}
 
@@ -325,6 +324,7 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
             <li><strong>Kwerzo!</strong> Complete a line of 6 → +6 bonus points (12 total for that line).</li>
             <li>Empty out your hand when the bag is empty → +6 bonus points.</li>
           </ul>
+          <AdUnit style={{ marginTop: 24 }} />
         </div>
       )}
     </div>
