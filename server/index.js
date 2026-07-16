@@ -184,8 +184,6 @@ function scheduleBotMoves(roomId) {
       return;
     }
 
-    broadcastGameState(updatedRoom);
-
     const type = result.action;
     io.to(roomId).emit('move_made', {
       roomId,
@@ -196,6 +194,7 @@ function scheduleBotMoves(roomId) {
       kwerzo:   result.kwerzo || false,
       count:    result.count,
     });
+    broadcastGameState(updatedRoom);
 
     // If the next player is also a bot, chain another move
     const nextBot = roomManager.getCurrentBot(updatedRoom);
@@ -366,12 +365,12 @@ io.on('connection', (socket) => {
     if (room.status === 'finished') {
       handleGameOver(room);
     } else {
-      broadcastGameState(room);
       io.to(roomId).emit('move_made', {
         roomId, userId, username,
         points: moveResult.points,
         kwerzo: moveResult.kwerzo || false,
       });
+      broadcastGameState(room);
       scheduleBotMoves(roomId);
     }
   });
@@ -379,8 +378,8 @@ io.on('connection', (socket) => {
   socket.on('swap_tiles', ({ roomId, tiles }) => {
     const result = roomManager.handleSwap(roomId, userId, tiles);
     if (result.error) { socket.emit('move_error', result.error); return; }
-    broadcastGameState(result.room);
     io.to(roomId).emit('move_made', { roomId, userId, username, type: 'swap', count: tiles.length });
+    broadcastGameState(result.room);
     scheduleBotMoves(roomId);
   });
 
@@ -390,8 +389,8 @@ io.on('connection', (socket) => {
     if (result.room.status === 'finished') {
       handleGameOver(result.room);
     } else {
-      broadcastGameState(result.room);
       io.to(roomId).emit('move_made', { roomId, userId, username, type: 'pass' });
+      broadcastGameState(result.room);
       scheduleBotMoves(roomId);
     }
   });
