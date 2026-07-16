@@ -295,7 +295,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
         // Delay showing results so the user can see the last move on the board first
         if (msgs.length) {
           if (roundFlushTimerRef.current) clearTimeout(roundFlushTimerRef.current);
-          roundFlushTimerRef.current = setTimeout(() => setLastMsg(msgs.join(' · ')), 1500);
+          roundFlushTimerRef.current = setTimeout(() => setLastMsg(msgs.join(' · ')), 2500);
         }
       }
     });
