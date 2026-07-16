@@ -37,6 +37,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
   const gameStateRef = useRef(null);
   const scorePopupTimerRef = useRef(null);
   const roundFlushTimerRef = useRef(null);
+  const turnOverlayTimerRef = useRef(null);
   const lastMoverIdRef = useRef(null);
   const roundMovers = useRef(new Set());
   const pendingRoundMsgs = useRef([]);
@@ -239,10 +240,14 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
     prevHandRef2.current = myHand;
   });
 
-  // Show "Your Turn" overlay when turn transitions to local player
+  // Show "Your Turn" overlay after the last move's tile reveal completes
   useEffect(() => {
     if (myTurn && !prevMyTurn.current) {
-      setShowTurnOverlay(true);
+      if (turnOverlayTimerRef.current) clearTimeout(turnOverlayTimerRef.current);
+      turnOverlayTimerRef.current = setTimeout(() => setShowTurnOverlay(true), 2500);
+    }
+    if (!myTurn && turnOverlayTimerRef.current) {
+      clearTimeout(turnOverlayTimerRef.current);
     }
     prevMyTurn.current = myTurn;
   }, [myTurn]);
@@ -354,6 +359,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       socket.off('room_deleted');
       if (scorePopupTimerRef.current) clearTimeout(scorePopupTimerRef.current);
       if (roundFlushTimerRef.current) clearTimeout(roundFlushTimerRef.current);
+      if (turnOverlayTimerRef.current) clearTimeout(turnOverlayTimerRef.current);
     };
   }, [socket]);
 
