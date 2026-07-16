@@ -180,6 +180,22 @@
   50% { transform: translateY(-6px); }
 }
 
+/* ── Iberzo cross-promo card ─────────────────────────────────────────────── */
+.iberzo-promo-card {
+  display: block; text-decoration: none;
+  width: 100%; max-width: 360px;
+  background: linear-gradient(135deg, #f5ddd0 0%, #fdf6f0 100%);
+  border-radius: 16px; padding: 16px 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.22);
+  border: 1px solid rgba(192,57,43,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.iberzo-promo-card:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(0,0,0,0.28); }
+.iberzo-promo-inner { display: flex; flex-direction: column; gap: 6px; }
+.iberzo-promo-logo { height: 32px; width: auto; object-fit: contain; }
+.iberzo-promo-text { font-size: 13px; color: #7a3a2a; margin: 0; line-height: 1.4; }
+.iberzo-promo-cta { font-size: 12px; font-weight: 700; color: #c0392b; letter-spacing: 0.2px; }
+
 /* ── Lobby ── */
 .lobby-page {
   min-height: 100vh;

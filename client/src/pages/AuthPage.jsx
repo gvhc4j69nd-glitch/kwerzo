@@ -116,6 +116,15 @@ export default function AuthPage({ onAuth }) {
           ))}
         </div>
       </div>
+
+      {/* Iberzo cross-promo */}
+      <a href="https://www.iberzo.com" target="_blank" rel="noopener noreferrer" className="iberzo-promo-card">
+        <div className="iberzo-promo-inner">
+          <img src="https://www.iberzo.com/iberzo-logo.png" alt="Iberzo" className="iberzo-promo-logo" />
+          <p className="iberzo-promo-text">Love tile games? Try our other game — the classic strategy tile challenge you can play with friends or solo!</p>
+          <span className="iberzo-promo-cta">Play free at iberzo.com →</span>
+        </div>
+      </a>
       </div>
     </div>
   );
