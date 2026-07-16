@@ -192,7 +192,7 @@
 }
 .iberzo-promo-card:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(0,0,0,0.28); }
 .iberzo-promo-inner { display: flex; flex-direction: column; gap: 6px; }
-.iberzo-promo-logo { height: 32px; width: auto; object-fit: contain; }
+.iberzo-promo-logo { height: 56px; width: auto; object-fit: contain; }
 .iberzo-promo-text { font-size: 13px; color: #7a3a2a; margin: 0; line-height: 1.4; }
 .iberzo-promo-cta { font-size: 12px; font-weight: 700; color: #c0392b; letter-spacing: 0.2px; }
 
