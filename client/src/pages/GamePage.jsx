@@ -266,9 +266,13 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
           ...prev,
           [String(moverId)]: new Set(state.lastPlacements.map(p => `${p.x},${p.y}`)),
         }));
-        // Complete the pending board popup with actual placements
-        if (pendingBoardPopupRef.current && String(moverId) === String(user.id)) {
-          pendingBoardPopupRef.current = { ...pendingBoardPopupRef.current, placements: state.lastPlacements };
+        // Show board score popup immediately for own moves (before any round delay)
+        if (pendingBoardPopupRef.current && String(moverId) === String(user.id) && state.lastPlacements?.length) {
+          const popup = { ...pendingBoardPopupRef.current, placements: state.lastPlacements };
+          pendingBoardPopupRef.current = null;
+          if (scorePopupTimerRef.current) clearTimeout(scorePopupTimerRef.current);
+          setBoardScorePopup(popup);
+          scorePopupTimerRef.current = setTimeout(() => setBoardScorePopup(null), 2200);
         }
       }
 
@@ -280,22 +284,14 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       setMoveError('');
       setBotThinking(null);
 
-      // Flush round results after all players have moved once
+      // Flush round text summary after all players have moved once
       const totalPlayers = state.players.length;
       if (roundMovers.current.size >= totalPlayers) {
         if (pendingRoundMsgs.current.length) {
           setLastMsg(pendingRoundMsgs.current.join(' · '));
           pendingRoundMsgs.current = [];
         }
-        if (pendingBoardPopupRef.current?.placements) {
-          const popup = pendingBoardPopupRef.current;
-          pendingBoardPopupRef.current = null;
-          if (scorePopupTimerRef.current) clearTimeout(scorePopupTimerRef.current);
-          setBoardScorePopup(popup);
-          scorePopupTimerRef.current = setTimeout(() => setBoardScorePopup(null), 2200);
-        } else {
-          pendingBoardPopupRef.current = null;
-        }
+        pendingBoardPopupRef.current = null;
         roundMovers.current = new Set();
       }
     });

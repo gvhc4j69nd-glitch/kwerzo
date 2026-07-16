@@ -163,10 +163,10 @@ function handQualityBonus(move, hand, board) {
   return Math.round(total * 0.3); // tie-breaker weight — never overrides raw points
 }
 
-// ── 2-ply lookahead: score the best follow-up move with the remaining hand ────
-// Legendary-only — after committing to a move, find the best move the bot could
-// make on its NEXT turn using only the tiles that remain in hand (conservative:
-// ignores new draws, so any actual draw is pure upside).
+// ── 2-ply lookahead: score the best single-tile follow-up with remaining hand ─
+// Legendary-only. Uses single-tile moves only for speed — a full recursive search
+// across all remaining tiles for every candidate move would block Node's event loop.
+// Single-tile scoring is O(hand * adjacent_cells) and still gives meaningful signal.
 function nextTurnBonus(move, hand, board) {
   const remaining = [...hand];
   for (const { tile } of move.placements) {
@@ -178,11 +178,17 @@ function nextTurnBonus(move, hand, board) {
   const tempBoard = { ...board };
   for (const { x, y, tile } of move.placements) tempBoard[k(x, y)] = tile;
 
-  const nextMoves = findAllMoves(tempBoard, remaining);
-  if (nextMoves.length === 0) return 0;
-
-  // Best raw score available next turn, weighted to not dominate current points
-  const bestNext = Math.max(...nextMoves.map(m => m.pts + kwerzoPotential(tempBoard, m.placements)));
+  // Only enumerate single-tile placements — fast and sufficient for a lookahead hint
+  const anchors = adjacentCells(tempBoard);
+  let bestNext = 0;
+  for (const { x, y } of anchors) {
+    for (const tile of remaining) {
+      const placement = [{ x, y, tile }];
+      if (!validateMove(tempBoard, placement).valid) continue;
+      const pts = scoreMove(tempBoard, placement) + kwerzoPotential(tempBoard, placement);
+      if (pts > bestNext) bestNext = pts;
+    }
+  }
   return Math.round(bestNext * 0.5);
 }
 
