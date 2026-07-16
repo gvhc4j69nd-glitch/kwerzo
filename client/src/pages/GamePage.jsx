@@ -36,6 +36,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
   const trayRef = useRef(null);
   const gameStateRef = useRef(null);
   const scorePopupTimerRef = useRef(null);
+  const roundFlushTimerRef = useRef(null);
   const lastMoverIdRef = useRef(null);
   const roundMovers = useRef(new Set());
   const pendingRoundMsgs = useRef([]);
@@ -287,12 +288,15 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       // Flush round text summary after all players have moved once
       const totalPlayers = state.players.length;
       if (roundMovers.current.size >= totalPlayers) {
-        if (pendingRoundMsgs.current.length) {
-          setLastMsg(pendingRoundMsgs.current.join(' · '));
-          pendingRoundMsgs.current = [];
-        }
+        const msgs = pendingRoundMsgs.current.slice();
+        pendingRoundMsgs.current = [];
         pendingBoardPopupRef.current = null;
         roundMovers.current = new Set();
+        // Delay showing results so the user can see the last move on the board first
+        if (msgs.length) {
+          if (roundFlushTimerRef.current) clearTimeout(roundFlushTimerRef.current);
+          roundFlushTimerRef.current = setTimeout(() => setLastMsg(msgs.join(' · ')), 1500);
+        }
       }
     });
     socket.on('bot_thinking', ({ roomId: id, botId, username }) => {
@@ -331,11 +335,8 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
     });
     socket.on('move_error', (err) => { setMoveError(err); setStaged([]); setBotThinking(null); });
     socket.on('game_over',  (data) => {
-      // Flush any buffered round messages before showing game over
-      if (pendingRoundMsgs.current.length) {
-        setLastMsg(pendingRoundMsgs.current.join(' · '));
-        pendingRoundMsgs.current = [];
-      }
+      if (roundFlushTimerRef.current) clearTimeout(roundFlushTimerRef.current);
+      pendingRoundMsgs.current = [];
       roundMovers.current = new Set();
       pendingBoardPopupRef.current = null;
       setGameOver(data);
@@ -352,6 +353,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       socket.off('game_over');
       socket.off('room_deleted');
       if (scorePopupTimerRef.current) clearTimeout(scorePopupTimerRef.current);
+      if (roundFlushTimerRef.current) clearTimeout(roundFlushTimerRef.current);
     };
   }, [socket]);
 
