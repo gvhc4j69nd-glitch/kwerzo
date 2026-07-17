@@ -31,6 +31,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
   const [botThinking,     setBotThinking]     = useState(null); // { botId, username } | null
   const [boardScorePopup, setBoardScorePopup] = useState(null); // { points, kwerzo, placements } | null
   const [lastPlacementsByPlayer, setLastPlacementsByPlayer] = useState({}); // { [playerId]: Set<"x,y"> }
+  const [displayPlayerIndex, setDisplayPlayerIndex] = useState(initialState?.currentPlayerIndex ?? 0);
   const prevMyTurn = useRef(false);
   const transformRef = useRef(null);
   const trayRef = useRef(null);
@@ -290,6 +291,17 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       setMoveError('');
       setBotThinking(null);
 
+      // Update the displayed current-player highlight.
+      // If it's now the local user's turn, delay to match the tile reveal window
+      // so the highlight doesn't jump ahead of the board animation.
+      // If it's a bot's turn, update immediately so "thinking…" shows right away.
+      const nextId = state.players[state.currentPlayerIndex]?.id;
+      if (String(nextId) === String(user.id)) {
+        setTimeout(() => setDisplayPlayerIndex(state.currentPlayerIndex), 2500);
+      } else {
+        setDisplayPlayerIndex(state.currentPlayerIndex);
+      }
+
       // Flush round text summary after all players have moved once
       const totalPlayers = state.players.length;
       if (roundMovers.current.size >= totalPlayers) {
@@ -460,7 +472,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
   const boardH = (maxY - minY + 1) * CELL;
 
   const currentTurnPlayer = gameState
-    ? room?.players.find(p => p.id === gameState.players[gameState.currentPlayerIndex]?.id)
+    ? room?.players.find(p => p.id === gameState.players[displayPlayerIndex]?.id)
     : null;
 
   // ── Game Over ─────────────────────────────────────────────────────────────────
@@ -513,7 +525,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
         <div className="mob-scores">
           {room?.players.map(rp => {
             const gp     = gameState?.players.find(p => p.id === rp.id);
-            const active = gameState?.players[gameState.currentPlayerIndex]?.id === rp.id;
+            const active = gameState?.players[displayPlayerIndex]?.id === rp.id;
             return (
               <span key={rp.id} className={`mob-score-chip${active ? ' active' : ''}`}>
                 {active ? '▶ ' : ''}{rp.username} {gp?.score ?? 0}
@@ -536,7 +548,7 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
           <div className="players-panel">
             {room?.players.map(rp => {
               const gp            = gameState?.players.find(p => p.id === rp.id);
-              const isCurrentTurn = gameState?.players[gameState.currentPlayerIndex]?.id === rp.id;
+              const isCurrentTurn = gameState?.players[displayPlayerIndex]?.id === rp.id;
               return (
                 <div key={rp.id} className={`player-row ${isCurrentTurn ? 'active-turn' : ''} ${rp.id === user.id ? 'me' : ''}`}>
                   <div className="player-name">
