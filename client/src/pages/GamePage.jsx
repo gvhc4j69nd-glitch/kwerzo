@@ -269,10 +269,9 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       // Track last placements per player for color highlighting
       const moverId = lastMoverIdRef.current;
       if (moverId && state.lastPlacements?.length) {
-        setLastPlacementsByPlayer(prev => ({
-          ...prev,
+        setLastPlacementsByPlayer({
           [String(moverId)]: new Set(state.lastPlacements.map(p => `${p.x},${p.y}`)),
-        }));
+        });
         // Show board score popup immediately for own moves (before any round delay)
         if (pendingBoardPopupRef.current && String(moverId) === String(user.id) && state.lastPlacements?.length) {
           const popup = { ...pendingBoardPopupRef.current, placements: state.lastPlacements };
