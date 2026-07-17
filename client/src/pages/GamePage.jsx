@@ -292,15 +292,11 @@ export default function GamePage({ socket, user, roomId, initialRoom, initialSta
       setBotThinking(null);
 
       // Update the displayed current-player highlight.
-      // If it's now the local user's turn, delay to match the tile reveal window
-      // so the highlight doesn't jump ahead of the board animation.
-      // If it's a bot's turn, update immediately so "thinking…" shows right away.
+      // Delay highlight shift until tile animations complete (~1400ms max).
+      // 2500ms when it becomes the local user's turn (also gates the "Your Turn" overlay).
       const nextId = state.players[state.currentPlayerIndex]?.id;
-      if (String(nextId) === String(user.id)) {
-        setTimeout(() => setDisplayPlayerIndex(state.currentPlayerIndex), 2500);
-      } else {
-        setDisplayPlayerIndex(state.currentPlayerIndex);
-      }
+      const highlightDelay = String(nextId) === String(user.id) ? 2500 : 1500;
+      setTimeout(() => setDisplayPlayerIndex(state.currentPlayerIndex), highlightDelay);
 
       // Flush round text summary after all players have moved once
       const totalPlayers = state.players.length;
