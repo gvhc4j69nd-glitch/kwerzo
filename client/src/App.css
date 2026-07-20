@@ -1402,10 +1402,11 @@
 .notif-item.notif-game_invite { border-color: rgba(124,58,237,0.4); }
 .notif-item.notif-friend_request { border-color: rgba(67,160,71,0.4); }
 
+
 /* ── Demonstration of Play (KwerzoDemoPlay) ── */
 .kdp-section {
   width: 100%;
-  max-width: 760px;
+  max-width: 860px;
 }
 .kdp-title {
   font-size: 13px;
@@ -1416,114 +1417,91 @@
   text-align: center;
   margin-bottom: 10px;
 }
-.kdp-wrap {
+
+/* Full game window shell */
+.gdp-shell {
   display: flex;
-  gap: 16px;
-  background: var(--surface);
+  flex-direction: row;
+  width: 100%;
+  height: 460px;
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 16px;
-  box-shadow: 0 10px 32px rgba(0,0,0,0.3);
-  width: 100%;
-  box-sizing: border-box;
   overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4);
 }
-.kdp-sidebar {
+
+/* Sidebar — mirrors real .game-sidebar */
+.gdp-sidebar {
+  width: 210px;
+  min-width: 210px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
+  padding: 12px 10px;
   gap: 8px;
-  min-width: 150px;
+  overflow-y: auto;
   flex-shrink: 0;
 }
-.kdp-round-label {
-  font-size: 11px;
+.gdp-logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.gdp-logo { font-size: 18px; font-weight: 900; }
+.gdp-round-chip {
+  font-size: 10px;
   font-weight: 700;
   color: var(--primary);
   background: rgba(124,58,237,0.12);
   border-radius: 999px;
-  padding: 3px 10px;
-  text-align: center;
+  padding: 2px 8px;
   letter-spacing: 0.04em;
 }
-.kdp-players {
+.gdp-players { display: flex; flex-direction: column; gap: 6px; }
+.gdp-kwerzo-msg {
+  color: #f59e0b !important;
+  background: rgba(245,158,11,0.15) !important;
+  border-left-color: #f59e0b !important;
+  font-weight: 700;
+}
+
+/* Right pane: board + tray */
+.gdp-right {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
 }
-.kdp-player-row {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 6px;
-  border-radius: 7px;
-  font-size: 12px;
-  color: var(--text-muted);
-  transition: background 0.2s;
-}
-.kdp-player-row.kdp-active {
-  background: rgba(124,58,237,0.1);
-  color: var(--text);
-  font-weight: 600;
-}
-.kdp-arrow { width: 10px; font-size: 9px; color: var(--primary); }
-.kdp-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.kdp-pname { flex: 1; }
-.kdp-pscore { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 24px; text-align: right; }
-.kdp-hand-label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  margin-top: 4px;
-}
-.kdp-hand {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.kdp-board-outer {
-  overflow: hidden;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.kdp-board {
+.gdp-board-viewport {
+  flex: 1;
+  min-height: 0;
   position: relative;
+  overflow: hidden;
   background:
     radial-gradient(ellipse at 30% 30%, rgba(124,58,237,0.07) 0%, transparent 60%),
     repeating-linear-gradient(0deg, transparent, transparent 51px, rgba(255,255,255,0.025) 51px, rgba(255,255,255,0.025) 52px),
     repeating-linear-gradient(90deg, transparent, transparent 51px, rgba(255,255,255,0.025) 51px, rgba(255,255,255,0.025) 52px),
     var(--bg);
 }
-.kdp-cell {
+.gdp-board-world {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.gdp-cell {
   position: absolute;
   box-sizing: border-box;
   border: 1px solid rgba(255,255,255,0.04);
 }
-.kdp-tile-wrap {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.kdp-score-pop {
-  position: absolute;
-  transform: translateX(-50%);
-  background: rgba(124,58,237,0.92);
-  color: #fff;
-  font-weight: 800;
-  font-size: 13px;
-  padding: 4px 11px;
-  border-radius: 999px;
-  pointer-events: none;
+.gdp-tray-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
   white-space: nowrap;
-  z-index: 10;
-  animation: demo-score-pop 0.35s ease-out;
-}
-.kdp-score-pop.kdp-kwerzo-pop {
-  background: linear-gradient(135deg, #f59e0b, #e91e63);
-  font-size: 15px;
-  padding: 5px 14px;
-  box-shadow: 0 0 20px rgba(245,158,11,0.5);
+  margin-right: 4px;
+  flex-shrink: 0;
 }
