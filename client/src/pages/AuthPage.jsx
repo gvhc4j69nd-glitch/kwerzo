@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { api } from '../lib/api';
 import KwerzoDemoPlay from '../components/KwerzoDemoPlay';
+import KwerzoDemoPlayMobile from '../components/KwerzoDemoPlayMobile';
 
 function EyeIcon({ open }) {
   return open ? (
@@ -118,10 +119,11 @@ export default function AuthPage({ onAuth }) {
 
       </div>
 
-      {/* Demonstration of Play — wider section outside the 400px stack */}
+      {/* Demonstration of Play — CSS switches between desktop and mobile versions */}
       <div className="kdp-section">
         <div className="kdp-title">Demonstration of Play</div>
-        <KwerzoDemoPlay />
+        <div className="kdp-desktop-demo"><KwerzoDemoPlay /></div>
+        <div className="kdp-mobile-demo"><KwerzoDemoPlayMobile /></div>
       </div>
 
       {/* Iberzo cross-promo */}
