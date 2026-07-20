@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { api } from '../lib/api';
-import KwerzoDemo from '../components/KwerzoDemo';
 import KwerzoDemoPlay from '../components/KwerzoDemoPlay';
 
 function EyeIcon({ open }) {
@@ -51,7 +50,6 @@ export default function AuthPage({ onAuth }) {
   return (
     <div className="auth-page">
       <div className="auth-page-stack">
-      <KwerzoDemo />
       <div className="auth-card">
         <div className="auth-logo">
           <span className="logo-k">K</span>wer<span className="logo-z">z</span>o
@@ -118,7 +116,9 @@ export default function AuthPage({ onAuth }) {
         </div>
       </div>
 
-      {/* Demonstration of Play */}
+      </div>
+
+      {/* Demonstration of Play — wider section outside the 400px stack */}
       <div className="kdp-section">
         <div className="kdp-title">Demonstration of Play</div>
         <KwerzoDemoPlay />
@@ -132,7 +132,6 @@ export default function AuthPage({ onAuth }) {
           <span className="iberzo-promo-cta">Play free at iberzo.com →</span>
         </div>
       </a>
-      </div>
     </div>
   );
 }

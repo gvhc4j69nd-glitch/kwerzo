@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import KwerzoTile from './KwerzoTile';
 
-const CELL = 38;
+const CELL = 52;
 const COLS = 6;
 const ROWS = 5;
 
