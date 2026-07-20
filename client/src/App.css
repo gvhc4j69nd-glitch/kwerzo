@@ -254,6 +254,7 @@
 .lobby-demo-wrap { display: flex; justify-content: center; margin-bottom: 24px; }
 
 .rooms-list { display: flex; flex-direction: column; gap: 10px; }
+.create-room-hint { font-size: 12px; color: var(--text-muted); margin: 0; text-align: center; }
 
 .room-card {
   display: flex;

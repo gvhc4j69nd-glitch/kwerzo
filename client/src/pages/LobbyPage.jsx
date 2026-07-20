@@ -127,6 +127,7 @@ export default function LobbyPage({ socket, user, onJoinRoom, onLogout }) {
             <button className="btn-primary" onClick={createRoom} disabled={creating}>
               + Create Room
             </button>
+            <p className="create-room-hint">Create a room friends can join, or play against the bots</p>
           </div>
           <div className="rooms-list">
             {rooms.length === 0 ? (
