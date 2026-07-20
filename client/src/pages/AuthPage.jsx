@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { api } from '../lib/api';
 import KwerzoDemo from '../components/KwerzoDemo';
+import KwerzoDemoPlay from '../components/KwerzoDemoPlay';
 
 function EyeIcon({ open }) {
   return open ? (
@@ -115,6 +116,12 @@ export default function AuthPage({ onAuth }) {
             <span key={i} className="deco-shape" style={{ animationDelay: `${i * 0.3}s` }}>{s}</span>
           ))}
         </div>
+      </div>
+
+      {/* Demonstration of Play */}
+      <div className="kdp-section">
+        <div className="kdp-title">Demonstration of Play</div>
+        <KwerzoDemoPlay />
       </div>
 
       {/* Iberzo cross-promo */}
