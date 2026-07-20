@@ -250,7 +250,7 @@
   margin: 0 auto;
 }
 
-.lobby-actions { margin-bottom: 20px; display: flex; justify-content: center; }
+.lobby-actions { margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .lobby-demo-wrap { display: flex; justify-content: center; margin-bottom: 24px; }
 
 .rooms-list { display: flex; flex-direction: column; gap: 10px; }
